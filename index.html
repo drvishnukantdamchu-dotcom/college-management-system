@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#1a237e"/>
+  <title>DAMC ERP — Dhanwantari Ayurved Medical College</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="icon" href="assets/images/logo.png"/>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="assets/css/main.css"/>
+</head>
+<body class="login-body">
+
+  <!-- Animated Background -->
+  <div class="bg-animation">
+    <div class="bg-circle c1"></div>
+    <div class="bg-circle c2"></div>
+    <div class="bg-circle c3"></div>
+  </div>
+
+  <!-- Login Container -->
+  <div class="login-wrapper">
+
+    <!-- Left Panel -->
+    <div class="login-left">
+      <div class="college-brand">
+        <div class="college-logo-wrap">
+          <i class="fas fa-leaf college-icon"></i>
+        </div>
+        <h1 class="college-name">Dhanwantari Ayurved<br/>Medical College</h1>
+        <p class="college-sub">& Hospital, Udgir</p>
+        <div class="college-info-pills">
+          <span class="pill"><i class="fas fa-map-marker-alt"></i> Udgir, Latur – 413517</span>
+          <span class="pill"><i class="fas fa-university"></i> Affiliated: MUHS Nashik</span>
+          <span class="pill"><i class="fas fa-graduation-cap"></i> BAMS (60 Seats/Year)</span>
+          <span class="pill"><i class="fas fa-certificate"></i> Approved: CCIM & AYUSH</span>
+        </div>
+      </div>
+      <div class="login-features">
+        <div class="feat-item"><i class="fas fa-shield-alt"></i><span>Secure & Encrypted</span></div>
+        <div class="feat-item"><i class="fas fa-cloud"></i><span>Cloud Backup</span></div>
+        <div class="feat-item"><i class="fas fa-mobile-alt"></i><span>Mobile Friendly</span></div>
+        <div class="feat-item"><i class="fas fa-wifi-slash"></i><span>Works Offline</span></div>
+      </div>
+    </div>
+
+    <!-- Right Panel — Login Form -->
+    <div class="login-right">
+      <div class="login-card">
+        <div class="login-header">
+          <h2>Welcome Back</h2>
+          <p>Sign in to DAMC ERP System</p>
+        </div>
+
+        <div id="loginAlert" class="alert hidden"></div>
+
+        <form id="loginForm" class="login-form">
+          <div class="form-group">
+            <label><i class="fas fa-user-circle"></i> Username</label>
+            <input type="text" id="loginUser" placeholder="Enter your username" required autocomplete="username"/>
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-lock"></i> Password</label>
+            <div class="pass-wrap">
+              <input type="password" id="loginPass" placeholder="Enter your password" required autocomplete="current-password"/>
+              <button type="button" class="toggle-pass" onclick="togglePassword()">
+                <i class="fas fa-eye" id="eyeIcon"></i>
+              </button>
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="rememberMe"/> Remember me
+            </label>
+            <a href="#" class="forgot-link">Forgot Password?</a>
+          </div>
+          <button type="submit" class="btn-login">
+            <span id="loginText">Sign In</span>
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </form>
+
+        <div class="demo-creds">
+          <p><strong>Demo Credentials:</strong></p>
+          <div class="cred-grid">
+            <div class="cred-item" onclick="fillCred('admin','admin123')">
+              <i class="fas fa-user-shield"></i>
+              <span>Admin<br/><small>admin / admin123</small></span>
+            </div>
+            <div class="cred-item" onclick="fillCred('faculty','faculty123')">
+              <i class="fas fa-chalkboard-teacher"></i>
+              <span>Faculty<br/><small>faculty / faculty123</small></span>
+            </div>
+            <div class="cred-item" onclick="fillCred('student','student123')">
+              <i class="fas fa-user-graduate"></i>
+              <span>Student<br/><small>student / student123</small></span>
+            </div>
+            <div class="cred-item" onclick="fillCred('accounts','accounts123')">
+              <i class="fas fa-calculator"></i>
+              <span>Accounts<br/><small>accounts / accounts123</small></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="login-footer">
+          <p>DAMC ERP v2.0 &copy; 2025 | <a href="https://www.damchudgir.edu.in" target="_blank">damchudgir.edu.in</a></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="assets/js/db.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('SW Registered'))
+        .catch(e => console.log('SW Error:', e));
+    }
+
+    function togglePassword() {
+      const p = document.getElementById('loginPass');
+      const i = document.getElementById('eyeIcon');
+      if (p.type === 'password') {
+        p.type = 'text';
+        i.classList.replace('fa-eye', 'fa-eye-slash');
+      } else {
+        p.type = 'password';
+        i.classList.replace('fa-eye-slash', 'fa-eye');
+      }
+    }
+
+    function fillCred(user, pass) {
+      document.getElementById('loginUser').value = user;
+      document.getElementById('loginPass').value = pass;
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const u = document.getElementById('loginUser').value.trim();
+      const p = document.getElementById('loginPass').value.trim();
+      const result = AUTH.login(u, p);
+      if (result.success) {
+        document.getElementById('loginText').textContent = 'Loading...';
+        setTimeout(() => { window.location.href = 'pages/dashboard.html'; }, 800);
+      } else {
+        const alert = document.getElementById('loginAlert');
+        alert.textContent = result.message;
+        alert.className = 'alert alert-error';
+        setTimeout(() => { alert.className = 'alert hidden'; }, 3000);
+      }
+    });
+  </script>
+</body>
+</html>
