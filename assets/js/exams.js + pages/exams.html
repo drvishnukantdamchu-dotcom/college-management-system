@@ -1,0 +1,395 @@
+/**
+ * DAMC ERP — Examination Management Module
+ * Designed & Developed by Dr. Jadhav V R (95183 56305)
+ */
+
+const EXAMS = {
+
+  renderSchedule() {
+    const exams = DB.get(DB.KEYS.EXAMS)
+      .sort((a, b) => new Date(a.examDate) - new Date(b.examDate));
+    const tbody = document.getElementById('examTableBody');
+    if (!tbody) return;
+
+    if (!exams.length) {
+      tbody.innerHTML = `<tr><td colspan="8">
+        <div class="empty-state">
+          <i class="fas fa-file-alt"></i>
+          <h4>No exams scheduled</h4>
+        </div></td></tr>`;
+      return;
+    }
+
+    const today = new Date();
+    tbody.innerHTML = exams.map((e, i) => {
+      const examDate = new Date(e.examDate);
+      const isPast   = examDate < today;
+      const isToday  = examDate.toDateString() === today.toDateString();
+      return `
+        <tr class="animate-in" style="animation-delay:${i*0.03}s">
+          <td class="text-primary text-bold">${e.examCode || '-'}</td>
+          <td>
+            <strong>${e.subject}</strong>
+            <div style="font-size:0.72rem;color:var(--text-muted)">
+              ${e.type || 'Written'}
+            </div>
+          </td>
+          <td><span class="badge badge-blue">${e.year} Year</span></td>
+          <td>
+            <span style="color:${isToday
+              ? 'var(--warning)' : isPast
+              ? 'var(--text-muted)' : 'var(--text-primary)'};
+              font-weight:${isToday ? '700' : '400'}">
+              ${APP.Utils.formatDate(e.examDate)}
+              ${isToday
+                ? '<span class="badge badge-orange" style="margin-left:4px">Today!</span>'
+                : ''}
+            </span>
+          </td>
+          <td>${e.time || '-'}</td>
+          <td>${e.duration ? e.duration + ' mins' : '-'}</td>
+          <td>${e.maxMarks || '-'}</td>
+          <td>
+            <div class="td-actions">
+              <button class="btn btn-sm btn-primary"
+                onclick="EXAMS.openResults('${e.id}')">
+                <i class="fas fa-edit"></i> Results
+              </button>
+              <button class="btn btn-sm btn-outline"
+                onclick="EXAMS.editExam('${e.id}')">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-danger"
+                onclick="EXAMS.deleteExam('${e.id}')">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  openForm(id = null) {
+    document.getElementById('examForm').reset();
+    if (id) {
+      const e = DB.findById(DB.KEYS.EXAMS, id);
+      if (!e) return;
+      document.getElementById('examModalTitle').textContent = 'Edit Exam';
+      const map = {
+        eCode:'examCode', eSubject:'subject', eYear:'year',
+        eDate:'examDate', eTime:'time', eDuration:'duration',
+        eMaxMarks:'maxMarks', eType:'type', eRoom:'room',
+        eInvigilator:'invigilator', eRemarks:'remarks'
+      };
+      Object.entries(map).forEach(([elId, key]) => {
+        const el = document.getElementById(elId);
+        if (el) el.value = e[key] || '';
+      });
+      document.getElementById('examForm').dataset.editId = id;
+    } else {
+      document.getElementById('examModalTitle').textContent = 'Schedule Exam';
+      delete document.getElementById('examForm').dataset.editId;
+      const count = DB.get(DB.KEYS.EXAMS).length + 1;
+      document.getElementById('eCode').value =
+        'DAMC/EXAM/' + String(count).padStart(4,'0');
+    }
+    document.getElementById('examModal').classList.remove('hidden');
+  },
+
+  editExam(id) { this.openForm(id); },
+
+  saveExam() {
+    const subject = document.getElementById('eSubject').value.trim();
+    const year    = document.getElementById('eYear').value;
+    const date    = document.getElementById('eDate').value;
+    if (!subject || !year || !date) {
+      APP.toast('Subject, Year and Date are required!', 'warning');
+      return;
+    }
+    const data = {
+      examCode:    document.getElementById('eCode').value,
+      subject, year, examDate: date,
+      time:        document.getElementById('eTime').value,
+      duration:    document.getElementById('eDuration').value,
+      maxMarks:    parseInt(document.getElementById('eMaxMarks').value) || 100,
+      type:        document.getElementById('eType').value,
+      room:        document.getElementById('eRoom').value,
+      invigilator: document.getElementById('eInvigilator').value,
+      remarks:     document.getElementById('eRemarks').value,
+    };
+    const editId = document.getElementById('examForm').dataset.editId;
+    if (editId) {
+      DB.update(DB.KEYS.EXAMS, editId, data);
+      APP.toast('Exam updated!', 'success');
+    } else {
+      DB.add(DB.KEYS.EXAMS, data);
+      APP.toast('Exam scheduled!', 'success');
+    }
+    document.getElementById('examModal').classList.add('hidden');
+    this.renderSchedule();
+    this.updateStats();
+  },
+
+  deleteExam(id) {
+    const e = DB.findById(DB.KEYS.EXAMS, id);
+    if (!e) return;
+    APP.confirm(`Delete exam <strong>${e.subject}</strong>?`, () => {
+      DB.delete(DB.KEYS.EXAMS, id);
+      APP.toast('Exam deleted!', 'success');
+      this.renderSchedule();
+      this.updateStats();
+    });
+  },
+
+  openResults(examId) {
+    const exam = DB.findById(DB.KEYS.EXAMS, examId);
+    if (!exam) return;
+    const students = DB.get(DB.KEYS.STUDENTS)
+      .filter(s => s.year === exam.year && s.active);
+    const results  = DB.get(DB.KEYS.RESULTS)
+      .filter(r => r.examId === examId);
+
+    document.getElementById('resultExamTitle').textContent =
+      `${exam.subject} — ${exam.year} Year (Max: ${exam.maxMarks})`;
+    document.getElementById('resultExamId').value = examId;
+    document.getElementById('resultMaxMarks').value = exam.maxMarks || 100;
+
+    document.getElementById('resultBody').innerHTML = students.map(s => {
+      const res = results.find(r => r.studentId === s.id);
+      return `
+        <tr>
+          <td>${s.rollNo}</td>
+          <td><strong>${s.name}</strong></td>
+          <td>
+            <div class="input-group" style="max-width:120px">
+              <span class="input-group-prefix">M</span>
+              <input type="number" class="result-marks"
+                data-student-id="${s.id}"
+                data-student-name="${s.name}"
+                data-roll="${s.rollNo}"
+                min="0" max="${exam.maxMarks}"
+                value="${res ? res.marks : ''}"
+                placeholder="0"
+                oninput="EXAMS.updateResultRow(this,${exam.maxMarks})"/>
+            </div>
+          </td>
+          <td id="resultGrade-${s.id}">
+            ${res ? EXAMS._grade(res.marks, exam.maxMarks) : '-'}
+          </td>
+          <td id="resultStatus-${s.id}">
+            ${res ? (res.marks >= (exam.maxMarks * 0.4)
+              ? '<span class="badge badge-green">✓ Pass</span>'
+              : '<span class="badge badge-red">✗ Fail</span>') : '-'}
+          </td>
+          <td>
+            <input type="text" class="result-remark"
+              data-student-id="${s.id}"
+              value="${res ? res.remark || '' : ''}"
+              placeholder="Remark"
+              style="padding:4px 8px;border:1px solid var(--border);
+                border-radius:6px;font-size:0.78rem;
+                background:var(--bg-input);color:var(--text-primary);width:100%"/>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    document.getElementById('resultModal').classList.remove('hidden');
+  },
+
+  updateResultRow(input, maxMarks) {
+    const marks     = parseInt(input.value) || 0;
+    const studentId = input.dataset.studentId;
+    const pct       = (marks / maxMarks) * 100;
+
+    const gradeEl  = document.getElementById(`resultGrade-${studentId}`);
+    const statusEl = document.getElementById(`resultStatus-${studentId}`);
+
+    if (gradeEl)  gradeEl.textContent = this._grade(marks, maxMarks);
+    if (statusEl) statusEl.innerHTML  = marks >= maxMarks * 0.4
+      ? '<span class="badge badge-green">✓ Pass</span>'
+      : '<span class="badge badge-red">✗ Fail</span>';
+  },
+
+  saveResults() {
+    const examId    = document.getElementById('resultExamId').value;
+    const maxMarks  = parseInt(document.getElementById('resultMaxMarks').value);
+    const existing  = DB.get(DB.KEYS.RESULTS)
+      .filter(r => r.examId !== examId);
+
+    const newResults = [];
+    document.querySelectorAll('.result-marks').forEach(inp => {
+      if (inp.value === '') return;
+      const marks     = parseInt(inp.value) || 0;
+      const studentId = inp.dataset.studentId;
+      const remark    = document.querySelector(
+        `.result-remark[data-student-id="${studentId}"]`
+      )?.value || '';
+
+      newResults.push({
+        id:          DB.generateId(),
+        examId,
+        studentId,
+        studentName: inp.dataset.studentName,
+        rollNo:      inp.dataset.roll,
+        marks,
+        maxMarks,
+        percentage:  Math.round((marks / maxMarks) * 100),
+        grade:       this._grade(marks, maxMarks),
+        pass:        marks >= maxMarks * 0.4,
+        remark,
+        savedBy:     AUTH.currentUser()?.name || 'Admin',
+        savedAt:     new Date().toISOString()
+      });
+    });
+
+    DB.set(DB.KEYS.RESULTS, [...existing, ...newResults]);
+    document.getElementById('resultModal').classList.add('hidden');
+    APP.toast(`${newResults.length} results saved!`, 'success');
+    AUTH.logActivity('RESULTS_SAVED',
+      `Saved ${newResults.length} results for exam ${examId}`);
+    this.updateStats();
+  },
+
+  _grade(marks, maxMarks) {
+    const pct = (marks / maxMarks) * 100;
+    if (pct >= 75) return 'Distinction';
+    if (pct >= 60) return 'First Class';
+    if (pct >= 50) return 'Second Class';
+    if (pct >= 40) return 'Pass';
+    return 'Fail';
+  },
+
+  updateStats() {
+    const exams   = DB.get(DB.KEYS.EXAMS);
+    const results = DB.get(DB.KEYS.RESULTS);
+    const today   = new Date();
+
+    const upcoming = exams.filter(e => new Date(e.examDate) >= today).length;
+    const past     = exams.filter(e => new Date(e.examDate) <  today).length;
+    const pass     = results.filter(r => r.pass).length;
+    const fail     = results.filter(r => !r.pass).length;
+
+    const el = (id, v) => {
+      const e = document.getElementById(id);
+      if (e) e.textContent = v;
+    };
+    el('examStatTotal',    exams.length);
+    el('examStatUpcoming', upcoming);
+    el('examStatPast',     past);
+    el('examStatPass',     pass);
+    el('examStatFail',     fail);
+  },
+
+  printHallTicket(studentId) {
+    const s = DB.findById(DB.KEYS.STUDENTS, studentId);
+    if (!s) return;
+    const exams = DB.get(DB.KEYS.EXAMS)
+      .filter(e => e.year === s.year)
+      .sort((a, b) => new Date(a.examDate) - new Date(b.examDate));
+
+    const w = window.open('', '_blank');
+    w.document.write(`
+      <!DOCTYPE html><html><head>
+      <title>Hall Ticket — ${s.name}</title>
+      <style>
+        body{font-family:Arial,sans-serif;padding:20px;color:#0f172a}
+        .ticket{max-width:600px;margin:auto;border:2px solid #1a237e;
+          border-radius:10px;overflow:hidden}
+        .t-header{background:linear-gradient(135deg,#0d1757,#1a6b3c);
+          color:white;padding:16px 20px;text-align:center}
+        .t-header h3{font-size:0.95rem;margin:0;line-height:1.4}
+        .t-title{background:#dbeafe;padding:10px 20px;
+          display:flex;justify-content:space-between;
+          font-size:0.88rem;font-weight:700;color:#1e3a8a}
+        .t-body{padding:16px 20px}
+        .t-student{display:grid;grid-template-columns:1fr 1fr;
+          gap:8px;margin-bottom:16px;background:#f8fafc;
+          padding:12px;border-radius:8px;font-size:0.82rem}
+        .t-field label{color:#64748b;display:block;font-size:0.68rem}
+        .t-field span{font-weight:700}
+        table{width:100%;border-collapse:collapse;font-size:0.8rem}
+        th{background:#1a237e;color:white;padding:8px 10px;text-align:left}
+        td{padding:8px 10px;border-bottom:1px solid #e2e8f0}
+        tr:nth-child(even){background:#f8fafc}
+        .t-footer{padding:12px 20px;border-top:1px dashed #1a237e;
+          display:flex;justify-content:space-between;font-size:0.72rem;color:#64748b}
+        .sign{border-top:1px solid #0f172a;margin-top:24px;
+          padding-top:4px;text-align:center;font-size:0.7rem}
+      </style>
+      </head>
+      <body onload="window.print()">
+      <div class="ticket">
+        <div class="t-header">
+          <h3>Dhanwantari Ayurved Medical College & Hospital, Udgir</h3>
+          <p style="font-size:0.68rem;opacity:0.8;margin:2px 0 0">
+            Affiliated: MUHS Nashik | Approved: CCIM & AYUSH
+          </p>
+        </div>
+        <div class="t-title">
+          <span>📋 EXAMINATION HALL TICKET</span>
+          <span>${s.year} Year BAMS</span>
+        </div>
+        <div class="t-body">
+          <div class="t-student">
+            <div class="t-field">
+              <label>Student Name</label>
+              <span>${s.name}</span>
+            </div>
+            <div class="t-field">
+              <label>Roll Number</label>
+              <span>${s.rollNo}</span>
+            </div>
+            <div class="t-field">
+              <label>Batch</label>
+              <span>${s.batch || '-'}</span>
+            </div>
+            <div class="t-field">
+              <label>Category</label>
+              <span>${s.category || '-'}</span>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Subject</th><th>Date</th>
+                <th>Time</th><th>Duration</th><th>Room</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${exams.map((e, i) => `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td>${e.subject}</td>
+                  <td>${APP.Utils.formatDate(e.examDate)}</td>
+                  <td>${e.time || '-'}</td>
+                  <td>${e.duration ? e.duration + ' min' : '-'}</td>
+                  <td>${e.room || '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="t-footer">
+          <div>
+            <p>Instructions:</p>
+            <p>1. Carry this hall ticket to every exam.</p>
+            <p>2. No electronic devices allowed.</p>
+            <p>3. Report 15 min before exam time.</p>
+          </div>
+          <div style="text-align:right">
+            <div class="sign">Controller of Examinations</div>
+            <div class="sign" style="margin-top:16px">Student Signature</div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;font-size:0.62rem;
+        color:#94a3b8;margin-top:8px">
+        Designed by Dr. Jadhav V R (95183 56305) | DAMC ERP v2.0
+      </div>
+      </body></html>
+    `);
+    w.document.close();
+  }
+};
