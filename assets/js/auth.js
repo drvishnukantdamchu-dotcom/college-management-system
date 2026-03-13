@@ -1,97 +1,94 @@
 /**
  * DAMC ERP — Authentication Module
- * Role-based access: admin, faculty, student, accounts, librarian
+ * Designed & Developed by Dr. Jadhav V R (95183 56305)
  */
 
 const AUTH = {
+
   SESSION_KEY: 'damc_session',
 
-  // ─── Login ────────────────────────────────────────────────────────
-  login(username, password) {
-    const users = DB.get(DB.KEYS.USERS);
-    const user = users.find(u =>
-      u.username === username && u.password === password && u.active
-    );
-    if (!user) {
-      return { success: false, message: '❌ Invalid username or password!' };
+  // ── Check if logged in, redirect if not ──────────────────────
+  checkLogin() {
+    const session = this.getSession();
+    if (!session) {
+      window.location.href = this.getLoginPath();
+      return false;
     }
+    return true;
+  },
+
+  // ── Get correct login path based on current directory ────────
+  getLoginPath() {
+    const path = window.location.pathname;
+    if (path.includes('/pages/')) return '../index.html';
+    return 'index.html';
+  },
+
+  // ── Login ─────────────────────────────────────────────────────
+  login(username, password) {
+    const users   = DB.getAll('users');
+    const user    = users.find(
+      u => u.username === username && u.password === password && u.active !== false
+    );
+    if (!user) return { success: false, message: 'Invalid username or password' };
+
     const session = {
-      userId: user.id,
-      username: user.username,
-      name: user.name,
-      role: user.role,
-      email: user.email,
-      loginTime: new Date().toISOString(),
-      studentId: user.studentId || null
+      id:        user.id,
+      username:  user.username,
+      name:      user.name,
+      role:      user.role,
+      email:     user.email,
+      loginTime: new Date().toISOString()
     };
     sessionStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
+
     // Log activity
-    this.logActivity('LOGIN', `${user.name} logged in`);
+    DB.add('activity', {
+      id:     DB.generateId(),
+      user:   user.username,
+      action: 'Login',
+      detail: `${user.name} logged in`,
+      time:   new Date().toISOString()
+    });
+
     return { success: true, user: session };
   },
 
-  // ─── Logout ───────────────────────────────────────────────────────
+  // ── Logout ────────────────────────────────────────────────────
   logout() {
-    const user = this.currentUser();
-    if (user) this.logActivity('LOGOUT', `${user.name} logged out`);
+    const session = this.getSession();
+    if (session) {
+      DB.add('activity', {
+        id:     DB.generateId(),
+        user:   session.username,
+        action: 'Logout',
+        detail: `${session.name} logged out`,
+        time:   new Date().toISOString()
+      });
+    }
     sessionStorage.removeItem(this.SESSION_KEY);
-    window.location.href = '../index.html';
+    const path = window.location.pathname;
+    window.location.href = path.includes('/pages/') ? '../index.html' : 'index.html';
   },
 
-  // ─── Current User ─────────────────────────────────────────────────
-  currentUser() {
+  // ── Get current session ───────────────────────────────────────
+  getSession() {
     try {
       const s = sessionStorage.getItem(this.SESSION_KEY);
       return s ? JSON.parse(s) : null;
-    } catch { return null; }
-  },
-
-  // ─── Check Auth (call on every protected page) ────────────────────
-  check(allowedRoles = []) {
-    const user = this.currentUser();
-    if (!user) {
-      window.location.href = '../index.html';
+    } catch (e) {
       return null;
     }
-    if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-      alert('⛔ Access Denied! You do not have permission for this page.');
-      window.history.back();
-      return null;
-    }
-    return user;
   },
 
-  // ─── Role Check Helpers ───────────────────────────────────────────
-  isAdmin: () => AUTH.currentUser()?.role === 'admin',
-  isFaculty: () => ['admin','faculty'].includes(AUTH.currentUser()?.role),
-  isStudent: () => AUTH.currentUser()?.role === 'student',
-  isAccounts: () => ['admin','accounts'].includes(AUTH.currentUser()?.role),
-  isLibrarian: () => ['admin','librarian'].includes(AUTH.currentUser()?.role),
+  // ── Role checks ───────────────────────────────────────────────
+  isAdmin()    { return this.getSession()?.role === 'admin';    },
+  isFaculty()  { return this.getSession()?.role === 'faculty';  },
+  isStudent()  { return this.getSession()?.role === 'student';  },
+  isAccounts() { return this.getSession()?.role === 'accounts'; },
 
-  // ─── Activity Log ─────────────────────────────────────────────────
-  logActivity(action, details) {
-    const logs = DB.get('damc_activity_logs');
-    logs.push({
-      id: DB.generateId(),
-      action,
-      details,
-      user: this.currentUser()?.name || 'System',
-      timestamp: new Date().toISOString()
-    });
-    // Keep last 500 logs only
-    if (logs.length > 500) logs.splice(0, logs.length - 500);
-    DB.set('damc_activity_logs', logs);
-  },
+  // ── Get user display name ─────────────────────────────────────
+  getUserName() { return this.getSession()?.name || 'User'; },
+  getRole()     { return this.getSession()?.role || '';     }
 
-  // ─── Change Password ──────────────────────────────────────────────
-  changePassword(oldPass, newPass) {
-    const user = this.currentUser();
-    if (!user) return { success: false, message: 'Not logged in' };
-    const users = DB.get(DB.KEYS.USERS);
-    const idx = users.findIndex(u => u.id === user.userId && u.password === oldPass);
-    if (idx === -1) return { success: false, message: 'Old password is incorrect!' };
-    users[idx].password = newPass;
-    DB.set(DB.KEYS.USERS, users);
-    return { success: true, message: 'Password changed successfully!' };
-  }
 };
