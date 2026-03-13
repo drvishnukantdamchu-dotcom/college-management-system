@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Attendance — DAMC ERP</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="../assets/css/main.css"/>
+  <style>
+    /* ── Attendance Specific ────────────────────────────── */
+    .att-buttons {
+      display: flex; gap: 6px;
+    }
+    .att-btn {
+      padding: 5px 10px; border-radius: var(--radius-sm);
+      font-size: 0.75rem; font-weight: 600;
+      border: 1.5px solid transparent;
+      transition: var(--transition-fast);
+      display: flex; align-items: center; gap: 4px;
+      cursor: pointer;
+    }
+    .att-btn.present { background:#f0fdf4; color:#16a34a; border-color:#bbf7d0; }
+    .att-btn.absent  { background:#fef2f2; color:#dc2626; border-color:#fecaca; }
+    .att-btn.late    { background:#fffbeb; color:#d97706; border-color:#fde68a; }
+    .att-btn.leave   { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+
+    .att-btn.present.active { background:#16a34a; color:white; border-color:#16a34a; box-shadow:0 2px 8px rgba(22,163,74,0.4); }
+    .att-btn.absent.active  { background:#dc2626; color:white; border-color:#dc2626; box-shadow:0 2px 8px rgba(220,38,38,0.4); }
+    .att-btn.late.active    { background:#d97706; color:white; border-color:#d97706; box-shadow:0 2px 8px rgba(217,119,6,0.4); }
+    .att-btn.leave.active   { background:#1d4ed8; color:white; border-color:#1d4ed8; box-shadow:0 2px 8px rgba(29,78,216,0.4); }
+
+    .row-absent  { background: rgba(220,38,38,0.04) !important; }
+    .row-late    { background: rgba(217,119,6,0.04) !important; }
+    .row-leave   { background: rgba(29,78,216,0.04) !important; }
+
+    .live-counter {
+      display: grid; grid-template-columns: repeat(6,1fr);
+      gap: 12px; margin-bottom: 16px;
+    }
+    .live-count-card {
+      padding: 14px; border-radius: var(--radius-md);
+      text-align: center; border: 1.5px solid var(--border);
+      background: var(--bg-card);
+    }
+    .live-count-card .lc-val {
+      font-size: 1.6rem; font-weight: 800;
+      font-family: var(--font-head); line-height: 1;
+    }
+    .live-count-card .lc-lbl {
+      font-size: 0.72rem; color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .lc-total   { border-color: var(--primary);  }
+    .lc-total   .lc-val { color: var(--primary);  }
+    .lc-present { border-color: var(--success);  }
+    .lc-present .lc-val { color: var(--success);  }
+    .lc-absent  { border-color: var(--danger);   }
+    .lc-absent  .lc-val { color: var(--danger);   }
+    .lc-late    { border-color: var(--warning);  }
+    .lc-late    .lc-val { color: var(--warning);  }
+    .lc-leave   { border-color: var(--info);     }
+    .lc-leave   .lc-val { color: var(--info);     }
+    .lc-pct     { border-color: var(--secondary); }
+    .lc-pct     .lc-val { color: var(--secondary); }
+
+    .att-filter-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 20px; flex-wrap: wrap;
+      background: var(--bg-table);
+      border-bottom: 1px solid var(--border);
+    }
+    .att-filter-bar label {
+      font-size: 0.82rem; font-weight: 500;
+      color: var(--text-secondary); white-space: nowrap;
+    }
+    .att-filter-bar select,
+    .att-filter-bar input[type="date"],
+    .att-filter-bar input[type="text"] {
+      padding: 7px 12px; border: 1.5px solid var(--border);
+      border-radius: var(--radius-md); background: var(--bg-card);
+      color: var(--text-primary); font-size: 0.83rem;
+      transition: var(--transition-fast);
+    }
+    .att-filter-bar select:focus,
+    .att-filter-bar input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-glow);
+    }
+
+    .mark-all-btns {
+      display: flex; gap: 8px; margin-bottom: 12px;
+      padding: 10px 20px; background: var(--bg-table);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; align-items: center;
+    }
+    .mark-all-btns span { font-size: 0.82rem; font-weight: 500; color: var(--text-secondary); }
+
+    .att-percentage { min-width: 80px; }
+
+    .existing-alert {
+      margin: 12px 20px;
+      padding: 10px 14px;
+      background: #fef3c7; border: 1px solid #fde68a;
+      border-radius: var(--radius-md);
+      font-size: 0.82rem; color: #92400e;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Chart Container */
+    .monthly-chart-wrap { height: 200px; }
+
+    /* Summary Stats */
+    .summary-stats {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: 14px; margin-bottom: 20px;
+    }
+
+    /* Designed By */
+    .designed-by-footer {
+      text-align: center; padding: 12px;
+      font-size: 0.72rem; color: var(--text-muted);
+      border-top: 1px solid var(--border);
+    }
+    .designed-by-footer a { color: var(--primary); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<div class="page-loader" id="pageLoader">
+  <div class="loader-ring"></div>
+  <p>Loading Attendance...</p>
+</div>
+
+<div class="modal-overlay hidden" id="sidebarOverlay" style="z-index:999;background:rgba(0,0,0,0.5)"></div>
+
+<div class="app-layout">
+
+  <!-- ══ SIDEBAR ═══════════════════════════════════════════════ -->
+  <nav class="sidebar" id="mainSidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fas fa-leaf"></i></div>
+      <div class="brand-text"><h3>DAMC ERP</h3><span>Ayurved College</span></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section-title">Main</div>
+      <a href="dashboard.html" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+      <div class="nav-section-title">Academic</div>
+      <a href="students.html" class="nav-item"><i class="fas fa-user-graduate"></i><span>Students</span></a>
+      <a href="faculty.html" class="nav-item"><i class="fas fa-chalkboard-teacher"></i><span>Faculty</span></a>
+      <a href="attendance.html" class="nav-item active"><i class="fas fa-calendar-check"></i><span>Attendance</span></a>
+      <a href="timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+      <a href="exams.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Examinations</span></a>
+      <div class="nav-section-title">Finance</div>
+      <a href="fees.html" class="nav-item"><i class="fas fa-rupee-sign"></i><span>Fee Management</span></a>
+      <div class="nav-section-title">Facilities</div>
+      <a href="library.html" class="nav-item"><i class="fas fa-book"></i><span>Library</span></a>
+      <a href="hostel.html" class="nav-item"><i class="fas fa-building"></i><span>Hostel</span></a>
+      <div class="nav-section-title">Reports</div>
+      <a href="reports.html" class="nav-item"><i class="fas fa-chart-bar"></i><span>Reports</span></a>
+      <div class="nav-section-title">System</div>
+      <a href="#" class="nav-item" onclick="openBackup()"><i class="fas fa-database"></i><span>Backup</span></a>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar">A</div>
+        <div class="user-info">
+          <p id="sidebarUserName">Admin</p>
+          <span id="sidebarUserRole">admin</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ══ MAIN CONTENT ══════════════════════════════════════════ -->
+  <div class="main-content" id="mainContent">
+
+    <header class="top-header">
+      <div class="header-left">
+        <button class="sidebar-toggle" id="sidebarToggle"><i class="fas fa-bars"></i></button>
+        <div>
+          <div class="page-title">Attendance Management</div>
+          <div class="breadcrumb">
+            <i class="fas fa-home"></i><span>Home</span> / Attendance
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" onclick="APP.toggleTheme()">
+          <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="ATTENDANCE.exportReport()">
+          <i class="fas fa-file-csv"></i> Export
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="AUTH.logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Summary Cards -->
+      <div class="summary-stats animate-in">
+        <div class="stat-card green" style="padding:16px">
+          <div class="stat-icon"><i class="fas fa-users"></i></div>
+          <div class="stat-value" id="summaryTotalStudents">0</div>
+          <div class="stat-label">Total Students</div>
+        </div>
+        <div class="stat-card blue" style="padding:16px">
+          <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+          <div class="stat-value" id="summaryTotalClasses">0</div>
+          <div class="stat-label">Days Recorded</div>
+        </div>
+        <div class="stat-card orange" style="padding:16px">
+          <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="stat-value" id="summaryTodayPresent">0</div>
+          <div class="stat-label">Today Present</div>
+        </div>
+        <div class="stat-card red" style="padding:16px">
+          <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+          <div class="stat-value" id="summaryShortage">0</div>
+          <div class="stat-label">Below 75%</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-header" style="margin-bottom:0">
+        <button class="tab-btn active" onclick="switchAttTab('take')">
+          <i class="fas fa-calendar-check"></i> Take Attendance
+        </button>
+        <button class="tab-btn" onclick="switchAttTab('shortage')">
+          <i class="fas fa-exclamation-triangle"></i> Shortage List
+        </button>
+        <button class="tab-btn" onclick="switchAttTab('history')">
+          <i class="fas fa-history"></i> History
+        </button>
+        <button class="tab-btn" onclick="switchAttTab('chart')">
+          <i class="fas fa-chart-bar"></i> Monthly Chart
+        </button>
+      </div>
+
+      <!-- ── TAB: Take Attendance ────────────────────────── -->
+      <div class="tab-pane active card" id="attTab-take" style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+
+        <!-- Filter Bar -->
+        <div class="att-filter-bar">
+          <label><i class="fas fa-calendar"></i> Date</label>
+          <input type="date" id="attDate" onchange="ATTENDANCE.onDateChange()"/>
+
+          <label><i class="fas fa-graduation-cap"></i> Year</label>
+          <select id="attYear" onchange="ATTENDANCE.onFilterChange()">
+            <option>1st</option><option>2nd</option>
+            <option>3rd</option><option>4th</option>
+            <option>Intern</option>
+          </select>
+
+          <label><i class="fas fa-clock"></i> Session</label>
+          <select id="attSession" onchange="ATTENDANCE.onFilterChange()">
+            <option>Morning</option><option>Afternoon</option>
+            <option>Evening</option>
+          </select>
+
+          <label><i class="fas fa-book"></i> Subject</label>
+          <input type="text" id="attSubject" placeholder="Subject (optional)" style="width:180px"/>
+
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="ATTENDANCE.loadAttendanceSheet()">
+              <i class="fas fa-sync"></i> Load
+            </button>
+            <button class="btn btn-success" onclick="ATTENDANCE.save()">
+              <i class="fas fa-save"></i> Save Attendance
+            </button>
+          </div>
+        </div>
+
+        <!-- Existing Alert -->
+        <div class="existing-alert hidden" id="existingAlert">
+          <i class="fas fa-info-circle"></i>
+          Attendance already recorded for this date/session. You can update it.
+        </div>
+
+        <!-- Mark All Buttons -->
+        <div class="mark-all-btns">
+          <span>Mark All:</span>
+          <button class="att-btn present active" onclick="ATTENDANCE.markAll('present')">
+            <i class="fas fa-check"></i> All Present
+          </button>
+          <button class="att-btn absent" onclick="ATTENDANCE.markAll('absent')">
+            <i class="fas fa-times"></i> All Absent
+          </button>
+          <button class="att-btn late" onclick="ATTENDANCE.markAll('late')">
+            <i class="fas fa-clock"></i> All Late
+          </button>
+        </div>
+
+        <!-- Live Counter -->
+        <div class="live-counter" style="padding:12px 20px">
+          <div class="live-count-card lc-total">
+            <div class="lc-val" id="liveTotal">0</div>
+            <div class="lc-lbl">Total</div>
+          </div>
+          <div class="live-count-card lc-present">
+            <div class="lc-val" id="livePresent">0</div>
+            <div class="lc-lbl">Present</div>
+          </div>
+          <div class="live-count-card lc-absent">
+            <div class="lc-val" id="liveAbsent">0</div>
+            <div class="lc-lbl">Absent</div>
+          </div>
+          <div class="live-count-card lc-late">
+            <div class="lc-val" id="liveLate">0</div>
+            <div class="lc-lbl">Late</div>
+          </div>
+          <div class="live-count-card lc-leave">
+            <div class="lc-val" id="liveLeave">0</div>
+            <div class="lc-lbl">Leave</div>
+          </div>
+          <div class="live-count-card lc-pct">
+            <div class="lc-val" id="livePercent">0%</div>
+            <div class="lc-lbl">Today %</div>
+          </div>
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="table-wrap" id="attTablePrint">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Student</th>
+                <th>Overall %</th>
+                <th>Mark Status</th>
+                <th>Remark</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="attTableBody">
+              <tr><td colspan="6">
+                <div class="empty-state">
+                  <i class="fas fa-calendar-check"></i>
+                  <p>Select date & year, then click Load</p>
+                </div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Save Button Bottom -->
+        <div style="padding:16px 20px;display:flex;justify-content:space-between;
+          align-items:center;border-top:1px solid var(--border)">
+          <div class="designed-by-footer">
+            <i class="fas fa-code"></i> Designed &amp; Developed by
+            <a href="tel:+919518356305">Dr. Jadhav V R (95183 56305)</a>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-outline" onclick="APP.Utils.printSection('attTablePrint')">
+              <i class="fas fa-print"></i> Print
+            </button>
+            <button class="btn btn-success btn-lg" onclick="ATTENDANCE.save()">
+              <i class="fas fa-save"></i> Save Attendance
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: Shortage List ──────────────────────────── -->
+      <div class="tab-pane card" id="attTab-shortage"
+        style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-exclamation-triangle" style="color:var(--danger)"></i>
+            Students Below 75% Attendance
+          </div>
+          <button class="btn btn-outline btn-sm"
+            onclick="APP.Utils.printSection('shortageTableWrap')">
+            <i class="fas fa-print"></i> Print
+          </button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap" id="shortageTableWrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Roll No</th>
+                  <th>Year</th>
+                  <th>Attendance %</th>
+                  <th>Action Needed</th>
+                </tr>
+              </thead>
+              <tbody id="shortageTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: History ────────────────────────────────── -->
+      <div class="tab-pane card" id="attTab-history"
+        style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-history"></i> Attendance History
+          </div>
+          <div style="display:flex;gap:8px">
+            <select id="histYear" style="padding:6px 10px;border:1px solid var(--border);
+              border-radius:var(--radius-md);font-size:0.83rem;background:var(--bg-card);color:var(--text-primary)">
+              <option value="">All Years</option>
+              <option>1st</option><option>2nd</option><option>3rd</option><option>4th</option>
+            </select>
+            <input type="date" id="histDate" style="padding:6px 10px;border:1px solid var(--border);
+              border-radius:var(--radius-md);font-size:0.83rem;background:var(--bg-card);color:var(--text-primary)"
+              onchange="loadHistory()"/>
+            <button class="btn btn-primary btn-sm" onclick="loadHistory()">
+              <i class="fas fa-search"></i> Search
+            </button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Student</th>
+                  <th>Year</th>
+                  <th>Session</th>
+                  <th>Subject</th>
+                  <th>Status</th>
+                  <th>Saved By</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <tr><td colspan="7">
+                  <div class="empty-state">
+                    <i class="fas fa-calendar"></i>
+                    <p>Select a date to view history</p>
+                  </div>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: Monthly Chart ──────────────────────────── -->
+      <div class="tab-pane card" id="attTab-chart"
+        style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-chart-bar"></i> Monthly Attendance Overview
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="monthly-chart-wrap">
+            <canvas id="monthlyAttChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div>
+</div>
+
+<!-- Backup Modal -->
+<div class="modal-overlay hidden" id="backupModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-database"></i> Backup</h3>
+      <button class="modal-close" onclick="document.getElementById('backupModal').classList.add('hidden')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <button class="btn btn-primary w-100" onclick="BACKUP.exportFull();APP.toast('Downloaded!','success')">
+        <i class="fas fa-download"></i> Download Full Backup
+      </button>
+      <div style="margin-top:12px">
+        <input type="file" accept=".json" onchange="handleRestore(this)"
+          style="width:100%;padding:8px;border:2px dashed var(--border);border-radius:var(--radius-md)"/>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/db.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/backup.js"></script>
+<script src="../assets/js/app.js"></script>
+<script src="../assets/js/attendance.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => document.getElementById('pageLoader').style.display = 'none', 500);
+  APP.init();
+  ATTENDANCE.init();
+});
+
+function switchAttTab(tab) {
+  document.querySelectorAll('[id^="attTab-"]').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`attTab-${tab}`)?.classList.add('active');
+  event.target.classList.add('active');
+
+  if (tab === 'chart') ATTENDANCE.renderMonthlyChart();
+  if (tab === 'shortage') ATTENDANCE.renderSummaryStats();
+}
+
+function loadHistory() {
+  const date = document.getElementById('histDate').value;
+  const year  = document.getElementById('histYear').value;
+  let records = DB.get(DB.KEYS.ATTENDANCE);
+  if (date) records = records.filter(a => a.date === date);
+  if (year) records = records.filter(a => a.year === year);
+
+  const tbody = document.getElementById('historyTableBody');
+  if (!records.length) {
+    tbody.innerHTML = `<tr><td colspan="7">
+      <div class="empty-state"><i class="fas fa-calendar-times"></i>
+        <p>No records found</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = records.map(r => `
+    <tr>
+      <td>${APP.Utils.formatDate(r.date)}</td>
+      <td><strong>${r.studentName}</strong><br/>
+        <small style="color:var(--text-muted)">${r.rollNo}</small></td>
+      <td><span class="badge badge-blue">${r.year} Year</span></td>
+      <td>${r.session}</td>
+      <td>${r.subject || '-'}</td>
+      <td>${r.status === 'present' ? '<span class="badge badge-green">✓ Present</span>' :
+            r.status === 'absent'  ? '<span class="badge badge-red">✗ Absent</span>'   :
+            r.status === 'late'    ? '<span class="badge badge-orange">⏰ Late</span>'   :
+            '<span class="badge badge-blue">📅 Leave</span>'}</td>
+      <td style="font-size:0.78rem;color:var(--text-muted)">${r.savedBy || '-'}</td>
+    </tr>
+  `).join('');
+}
+
+function openBackup() { document.getElementById('backupModal').classList.remove('hidden'); }
+
+async function handleRestore(input) {
+  const file = input.files[0];
+  if (!file) return;
+  APP.confirm('Replace all data with backup?', async () => {
+    try {
+      const result = await BACKUP.importBackup(file);
+      APP.toast(result.message, result.success ? 'success' : 'error');
+      if (result.success) setTimeout(() => location.reload(), 1200);
+    } catch(e) { APP.toast(e.message, 'error'); }
+  });
+}
+</script>
+</body>
+</html>
