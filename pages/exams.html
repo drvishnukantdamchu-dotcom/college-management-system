@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Examinations — DAMC ERP</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/main.css"/>
+  <style>
+    .filter-bar{display:flex;align-items:center;gap:10px;padding:14px 20px;
+      flex-wrap:wrap;background:var(--bg-table);border-bottom:1px solid var(--border)}
+    .filter-bar select,.filter-bar input{padding:7px 12px;
+      border:1.5px solid var(--border);border-radius:var(--radius-md);
+      background:var(--bg-card);color:var(--text-primary);font-size:0.83rem}
+    .designed-by-footer{text-align:center;padding:10px;
+      font-size:0.72rem;color:var(--text-muted)}
+    .designed-by-footer a{color:var(--primary);font-weight:600}
+  </style>
+</head>
+<body>
+<div class="page-loader" id="pageLoader">
+  <div class="loader-ring"></div><p>Loading Examinations...</p>
+</div>
+<div class="modal-overlay hidden" id="sidebarOverlay"
+  style="z-index:999;background:rgba(0,0,0,0.5)"></div>
+
+<div class="app-layout">
+  <nav class="sidebar" id="mainSidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fas fa-leaf"></i></div>
+      <div class="brand-text"><h3>DAMC ERP</h3><span>Ayurved College</span></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section-title">Main</div>
+      <a href="dashboard.html" class="nav-item">
+        <i class="fas fa-th-large"></i><span>Dashboard</span></a>
+      <div class="nav-section-title">Academic</div>
+      <a href="students.html" class="nav-item">
+        <i class="fas fa-user-graduate"></i><span>Students</span></a>
+      <a href="faculty.html" class="nav-item">
+        <i class="fas fa-chalkboard-teacher"></i><span>Faculty</span></a>
+      <a href="attendance.html" class="nav-item">
+        <i class="fas fa-calendar-check"></i><span>Attendance</span></a>
+      <a href="timetable.html" class="nav-item">
+        <i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+      <a href="exams.html" class="nav-item active">
+        <i class="fas fa-file-alt"></i><span>Examinations</span></a>
+      <div class="nav-section-title">Finance</div>
+      <a href="fees.html" class="nav-item">
+        <i class="fas fa-rupee-sign"></i><span>Fee Management</span></a>
+      <div class="nav-section-title">Facilities</div>
+      <a href="library.html" class="nav-item">
+        <i class="fas fa-book"></i><span>Library</span></a>
+      <a href="hostel.html" class="nav-item">
+        <i class="fas fa-building"></i><span>Hostel</span></a>
+      <div class="nav-section-title">Reports</div>
+      <a href="reports.html" class="nav-item">
+        <i class="fas fa-chart-bar"></i><span>Reports</span></a>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar">A</div>
+        <div class="user-info">
+          <p id="sidebarUserName">Admin</p>
+          <span id="sidebarUserRole">admin</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content" id="mainContent">
+    <header class="top-header">
+      <div class="header-left">
+        <button class="sidebar-toggle" id="sidebarToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div>
+          <div class="page-title">Examination Management</div>
+          <div class="breadcrumb">
+            <i class="fas fa-home"></i><span>Home</span> / Exams
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" onclick="APP.toggleTheme()">
+          <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+        <button class="btn btn-primary" onclick="EXAMS.openForm()">
+          <i class="fas fa-plus"></i> Schedule Exam
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="AUTH.logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </header>
+
+    <div class="page-content">
+      <!-- Stats -->
+      <div class="stats-grid"
+        style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">
+        <div class="stat-card blue" style="padding:14px">
+          <div class="stat-value" id="examStatTotal">0</div>
+          <div class="stat-label">Total Exams</div>
+        </div>
+        <div class="stat-card orange" style="padding:14px">
+          <div class="stat-value" id="examStatUpcoming">0</div>
+          <div class="stat-label">Upcoming</div>
+        </div>
+        <div class="stat-card purple" style="padding:14px">
+          <div class="stat-value" id="examStatPast">0</div>
+          <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card green" style="padding:14px">
+          <div class="stat-value" id="examStatPass">0</div>
+          <div class="stat-label">Pass</div>
+        </div>
+        <div class="stat-card red" style="padding:14px">
+          <div class="stat-value" id="examStatFail">0</div>
+          <div class="stat-label">Fail</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-header" style="margin-bottom:0">
+        <button class="tab-btn active" onclick="switchExamTab('schedule')">
+          <i class="fas fa-calendar"></i> Schedule
+        </button>
+        <button class="tab-btn" onclick="switchExamTab('results')">
+          <i class="fas fa-chart-bar"></i> Results
+        </button>
+        <button class="tab-btn" onclick="switchExamTab('hallticket')">
+          <i class="fas fa-id-card"></i> Hall Tickets
+        </button>
+      </div>
+
+      <!-- Schedule Tab -->
+      <div class="tab-pane active card" id="examTab-schedule"
+        style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+        <div class="filter-bar">
+          <select id="examYearFilter" onchange="EXAMS.renderSchedule()">
+            <option value="">All Years</option>
+            <option>1st</option><option>2nd</option>
+            <option>3rd</option><option>4th</option>
+          </select>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm"
+              onclick="APP.Utils.printSection('examTableWrap')">
+              <i class="fas fa-print"></i> Print
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap" id="examTableWrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Code</th><th>Subject</th><th>Year</th>
+                <th>Date</th><th>Time</th><th>Duration</th>
+                <th>Max Marks</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="examTableBody"></tbody>
+          </table>
+        </div>
+        <div class="card-footer">
+          <div class="designed-by-footer">
+            Designed &amp; Developed by
+            <a href="tel:+919518356305">Dr. Jadhav V R (95183 56305)</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Tab -->
+      <div class="tab-pane card" id="examTab-results"
+        style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-chart-bar"></i> Exam Results Summary
+          </div>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Student</th><th>Roll No</th><th>Subject</th>
+                  <th>Marks</th><th>%</th><th>Grade</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="resultsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hall Ticket Tab -->
+      <div class="tab-pane card" id="examTab-hallticket"
+        style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-id-card"></i> Print Hall Tickets
+          </div>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Roll No</th><th>Name</th><th>Year</th><th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="hallTicketBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- SCHEDULE EXAM MODAL -->
+<div class="modal-overlay hidden" id="examModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3>
+        <i class="fas fa-calendar-plus"></i>
+        <span id="examModalTitle">Schedule Exam</span>
+      </h3>
+      <button class="modal-close" onclick="closeModal('examModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="examForm"
+        onsubmit="event.preventDefault();EXAMS.saveExam()">
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>Exam Code</label>
+            <input type="text" id="eCode" placeholder="DAMC/EXAM/0001"/>
+          </div>
+          <div class="form-group form-full">
+            <label>Subject *</label>
+            <input type="text" id="eSubject"
+              placeholder="e.g. Kriya Sharir Paper I" required/>
+          </div>
+          <div class="form-group">
+            <label>Year *</label>
+            <select id="eYear" required>
+              <option value="">Select</option>
+              <option>1st</option><option>2nd</option>
+              <option>3rd</option><option>4th</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Exam Type</label>
+            <select id="eType">
+              <option>Internal Assessment</option>
+              <option>University Exam</option>
+              <option>Practical</option>
+              <option>Viva</option>
+              <option>Clinical</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Exam Date *</label>
+            <input type="date" id="eDate" required/>
+          </div>
+          <div class="form-group">
+            <label>Time</label>
+            <input type="time" id="eTime"/>
+          </div>
+          <div class="form-group">
+            <label>Duration (mins)</label>
+            <input type="number" id="eDuration" placeholder="180"/>
+          </div>
+          <div class="form-group">
+            <label>Max Marks</label>
+            <input type="number" id="eMaxMarks" placeholder="100" value="100"/>
+          </div>
+          <div class="form-group">
+            <label>Room / Hall</label>
+            <input type="text" id="eRoom" placeholder="Exam Hall 1"/>
+          </div>
+          <div class="form-group">
+            <label>Invigilator</label>
+            <input type="text" id="eInvigilator" placeholder="Faculty name"/>
+          </div>
+          <div class="form-group form-full">
+            <label>Remarks</label>
+            <input type="text" id="eRemarks"
+              placeholder="Any instructions..."/>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="font-size:0.72rem;color:var(--text-muted)">
+        <i class="fas fa-code"></i> Dr. Jadhav V R | 95183 56305
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline"
+          onclick="closeModal('examModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="EXAMS.saveExam()">
+          <i class="fas fa-save"></i> Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS MODAL -->
+<div class="modal-overlay hidden" id="resultModal">
+  <div class="modal modal-xl">
+    <div class="modal-header">
+      <h3><i class="fas fa-edit"></i> Enter Results</h3>
+      <button class="modal-close" onclick="closeModal('resultModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="resultExamId"/>
+      <input type="hidden" id="resultMaxMarks"/>
+      <div style="padding:10px 14px;background:var(--bg-table);
+        border-radius:var(--radius-md);margin-bottom:16px;font-weight:600">
+        <i class="fas fa-file-alt" style="color:var(--primary)"></i>
+        <span id="resultExamTitle"></span>
+      </div>
+      <div class="table-wrap" style="max-height:50vh;overflow-y:auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Roll No</th><th>Student Name</th>
+              <th>Marks</th><th>Grade</th><th>Status</th><th>Remark</th>
+            </tr>
+          </thead>
+          <tbody id="resultBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="font-size:0.72rem;color:var(--text-muted)">
+        <i class="fas fa-code"></i> Dr. Jadhav V R | 95183 56305
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline"
+          onclick="closeModal('resultModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="EXAMS.saveResults()">
+          <i class="fas fa-save"></i> Save All Results
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/db.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/backup.js"></script>
+<script src="../assets/js/app.js"></script>
+<script src="../assets/js/exams.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() =>
+    document.getElementById('pageLoader').style.display = 'none', 500);
+  APP.init();
+  EXAMS.renderSchedule();
+  EXAMS.updateStats();
+  renderResultsSummary();
+  renderHallTickets();
+});
+
+function switchExamTab(tab) {
+  document.querySelectorAll('[id^="examTab-"]')
+    .forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn')
+    .forEach(b => b.classList.remove('active'));
+  document.getElementById(`examTab-${tab}`)?.classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'results')    renderResultsSummary();
+  if (tab === 'hallticket') renderHallTickets();
+}
+
+function renderResultsSummary() {
+  const results = DB.get(DB.KEYS.RESULTS);
+  const tbody   = document.getElementById('resultsTableBody');
+  if (!tbody) return;
+  if (!results.length) {
+    tbody.innerHTML = `<tr><td colspan="7">
+      <div class="empty-state">
+        <i class="fas fa-chart-bar"></i>
+        <p>No results entered yet</p>
+      </div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = results.slice(-50).reverse().map(r => `
+    <tr>
+      <td><strong>${r.studentName}</strong></td>
+      <td class="text-primary">${r.rollNo}</td>
+      <td style="font-size:0.82rem">${
+        DB.findById(DB.KEYS.EXAMS, r.examId)?.subject || r.examId
+      }</td>
+      <td class="text-bold">${r.marks}/${r.maxMarks}</td>
+      <td>${r.percentage}%</td>
+      <td><span class="badge badge-${
+        r.grade === 'Distinction' ? 'green' :
+        r.grade === 'First Class' ? 'blue'  :
+        r.grade === 'Pass'        ? 'orange': 'red'
+      }">${r.grade}</span></td>
+      <td>
+        <span class="badge ${r.pass ? 'badge-green' : 'badge-red'}">
+          ${r.pass ? '✓ Pass' : '✗ Fail'}
+        </span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderHallTickets() {
+  const students = DB.get(DB.KEYS.STUDENTS).filter(s => s.active);
+  const tbody    = document.getElementById('hallTicketBody');
+  if (!tbody) return;
+  tbody.innerHTML = students.map(s => `
+    <tr>
+      <td class="text-primary text-bold">${s.rollNo}</td>
+      <td><strong>${s.name}</strong></td>
+      <td><span class="badge badge-blue">${s.year} Year</span></td>
+      <td>
+        <button class="btn btn-sm btn-primary"
+          onclick="EXAMS.printHallTicket('${s.id}')">
+          <i class="fas fa-print"></i> Print Hall Ticket
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+</script>
+</body>
+</html>
