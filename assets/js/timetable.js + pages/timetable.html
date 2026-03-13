@@ -1,0 +1,198 @@
+/**
+ * DAMC ERP — Timetable Management Module
+ * Designed & Developed by Dr. Jadhav V R (95183 56305)
+ */
+
+const TIMETABLE = {
+
+  days:     ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+  periods:  ['8:00-9:00','9:00-10:00','10:00-11:00','11:00-12:00',
+             '12:00-1:00','1:00-2:00','2:00-3:00','3:00-4:00','4:00-5:00'],
+
+  init() {
+    this.currentYear    = document.getElementById('ttYear')?.value    || '1st';
+    this.currentSemester = document.getElementById('ttSem')?.value   || 'Odd';
+    this.renderGrid();
+  },
+
+  // ── Render Timetable Grid ─────────────────────────────────────
+  renderGrid() {
+    const year     = document.getElementById('ttYear')?.value    || '1st';
+    const semester = document.getElementById('ttSem')?.value     || 'Odd';
+    const entries  = DB.get(DB.KEYS.TIMETABLE)
+      .filter(t => t.year === year && t.semester === semester);
+
+    const thead = document.getElementById('ttHead');
+    const tbody = document.getElementById('ttBody');
+    if (!thead || !tbody) return;
+
+    // Header
+    thead.innerHTML = `
+      <tr>
+        <th style="width:100px;background:var(--primary);color:white">Time / Day</th>
+        ${this.days.map(d =>
+          `<th style="background:var(--primary);color:white;text-align:center">${d}</th>`
+        ).join('')}
+      </tr>
+    `;
+
+    // Body
+    tbody.innerHTML = this.periods.map(period => {
+      if (period === '1:00-2:00') {
+        return `
+          <tr>
+            <td style="background:var(--bg-table);font-weight:600;
+              color:var(--text-muted);font-size:0.78rem;text-align:center">
+              🍽️ LUNCH BREAK
+            </td>
+            ${this.days.map(() =>
+              `<td style="background:var(--bg-table);text-align:center;
+                color:var(--text-muted);font-size:0.75rem">Break</td>`
+            ).join('')}
+          </tr>
+        `;
+      }
+
+      return `
+        <tr>
+          <td style="font-weight:600;font-size:0.78rem;color:var(--text-secondary);
+            white-space:nowrap;padding:8px 12px">${period}</td>
+          ${this.days.map(day => {
+            const entry = entries.find(e => e.day === day && e.period === period);
+            if (entry) {
+              return `
+                <td class="tt-cell filled" style="padding:6px;cursor:pointer"
+                  onclick="TIMETABLE.editCell('${day}','${period}','${year}','${semester}')">
+                  <div class="tt-entry" style="background:${entry.color||'#1a6b3c'}15;
+                    border-left:3px solid ${entry.color||'#1a6b3c'};
+                    border-radius:6px;padding:6px 8px">
+                    <div style="font-weight:600;font-size:0.8rem;color:var(--text-primary)">
+                      ${entry.subject}
+                    </div>
+                    <div style="font-size:0.7rem;color:var(--text-muted)">
+                      ${entry.faculty || ''}</div>
+                    <div style="font-size:0.68rem;color:var(--text-muted)">
+                      ${entry.room || ''}</div>
+                  </div>
+                </td>
+              `;
+            }
+            return `
+              <td class="tt-cell empty" style="padding:6px;cursor:pointer"
+                onclick="TIMETABLE.editCell('${day}','${period}','${year}','${semester}')">
+                <div class="tt-empty-cell">
+                  <i class="fas fa-plus"></i>
+                </div>
+              </td>
+            `;
+          }).join('')}
+        </tr>
+      `;
+    }).join('');
+  },
+
+  // ── Edit/Add Cell ─────────────────────────────────────────────
+  editCell(day, period, year, semester) {
+    const existing = DB.get(DB.KEYS.TIMETABLE).find(
+      t => t.day === day && t.period === period &&
+           t.year === year && t.semester === semester
+    );
+
+    document.getElementById('ttDay').value      = day;
+    document.getElementById('ttPeriod').value   = period;
+    document.getElementById('ttCellYear').value = year;
+    document.getElementById('ttCellSem').value  = semester;
+    document.getElementById('ttModalTitle').textContent =
+      `${day} — ${period} (${year} Year)`;
+
+    // Populate faculty dropdown
+    const facSel = document.getElementById('ttFaculty');
+    facSel.innerHTML = '<option value="">Select Faculty</option>';
+    DB.get(DB.KEYS.FACULTY).filter(f => f.active).forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.name; opt.textContent = f.name;
+      facSel.appendChild(opt);
+    });
+
+    if (existing) {
+      document.getElementById('ttSubject').value  = existing.subject  || '';
+      document.getElementById('ttFaculty').value  = existing.faculty  || '';
+      document.getElementById('ttRoom').value     = existing.room     || '';
+      document.getElementById('ttColor').value    = existing.color    || '#1a6b3c';
+      document.getElementById('ttType').value     = existing.type     || 'Lecture';
+      document.getElementById('ttCellId').value   = existing.id;
+    } else {
+      document.getElementById('ttSubject').value  = '';
+      document.getElementById('ttFaculty').value  = '';
+      document.getElementById('ttRoom').value     = '';
+      document.getElementById('ttColor').value    = '#1a6b3c';
+      document.getElementById('ttType').value     = 'Lecture';
+      document.getElementById('ttCellId').value   = '';
+    }
+
+    document.getElementById('ttCellModal').classList.remove('hidden');
+  },
+
+  // ── Save Cell ─────────────────────────────────────────────────
+  saveCell() {
+    const subject = document.getElementById('ttSubject').value.trim();
+    if (!subject) { APP.toast('Subject is required!', 'warning'); return; }
+
+    const data = {
+      day:      document.getElementById('ttDay').value,
+      period:   document.getElementById('ttPeriod').value,
+      year:     document.getElementById('ttCellYear').value,
+      semester: document.getElementById('ttCellSem').value,
+      subject,
+      faculty:  document.getElementById('ttFaculty').value,
+      room:     document.getElementById('ttRoom').value,
+      color:    document.getElementById('ttColor').value,
+      type:     document.getElementById('ttType').value,
+    };
+
+    const editId = document.getElementById('ttCellId').value;
+    if (editId) {
+      DB.update(DB.KEYS.TIMETABLE, editId, data);
+    } else {
+      DB.add(DB.KEYS.TIMETABLE, data);
+    }
+
+    document.getElementById('ttCellModal').classList.add('hidden');
+    this.renderGrid();
+    APP.toast('Timetable updated!', 'success');
+  },
+
+  // ── Delete Cell ───────────────────────────────────────────────
+  deleteCell() {
+    const id = document.getElementById('ttCellId').value;
+    if (!id) { APP.toast('No entry to delete!', 'info'); return; }
+    APP.confirm('Remove this timetable entry?', () => {
+      DB.delete(DB.KEYS.TIMETABLE, id);
+      document.getElementById('ttCellModal').classList.add('hidden');
+      this.renderGrid();
+      APP.toast('Entry removed!', 'success');
+    });
+  },
+
+  // ── Print Timetable ───────────────────────────────────────────
+  print() {
+    APP.Utils.printSection('ttTableWrap');
+  },
+
+  // ── Clear Year Timetable ──────────────────────────────────────
+  clearYear() {
+    const year     = document.getElementById('ttYear').value;
+    const semester = document.getElementById('ttSem').value;
+    APP.confirm(
+      `Clear entire timetable for <strong>${year} Year — ${semester} Semester</strong>?`,
+      () => {
+        const all = DB.get(DB.KEYS.TIMETABLE).filter(
+          t => !(t.year === year && t.semester === semester)
+        );
+        DB.set(DB.KEYS.TIMETABLE, all);
+        this.renderGrid();
+        APP.toast('Timetable cleared!', 'success');
+      }
+    );
+  }
+};
