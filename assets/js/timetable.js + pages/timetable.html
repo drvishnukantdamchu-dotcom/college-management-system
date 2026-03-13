@@ -196,3 +196,239 @@ const TIMETABLE = {
     );
   }
 };
+<!-- FILE 19b: pages/timetable.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Timetable — DAMC ERP</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/main.css"/>
+  <style>
+    .tt-cell { min-width: 130px; min-height: 72px; vertical-align: top; }
+    .tt-cell.empty:hover { background: var(--primary-glow); }
+    .tt-empty-cell {
+      height: 60px; display: flex; align-items: center;
+      justify-content: center; color: var(--border);
+      border: 2px dashed var(--border); border-radius: 8px;
+      font-size: 0.85rem; transition: var(--transition-fast);
+    }
+    .tt-cell.empty:hover .tt-empty-cell {
+      border-color: var(--primary); color: var(--primary);
+    }
+    .tt-filters {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px; background: var(--bg-table);
+      border-bottom: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .tt-filters select {
+      padding: 7px 12px; border: 1.5px solid var(--border);
+      border-radius: var(--radius-md); background: var(--bg-card);
+      color: var(--text-primary); font-size: 0.83rem;
+    }
+    .designed-by-footer {
+      text-align: center; padding: 10px;
+      font-size: 0.72rem; color: var(--text-muted);
+    }
+    .designed-by-footer a { color: var(--primary); font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="page-loader" id="pageLoader">
+  <div class="loader-ring"></div><p>Loading Timetable...</p>
+</div>
+<div class="modal-overlay hidden" id="sidebarOverlay"
+  style="z-index:999;background:rgba(0,0,0,0.5)"></div>
+
+<div class="app-layout">
+  <nav class="sidebar" id="mainSidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fas fa-leaf"></i></div>
+      <div class="brand-text"><h3>DAMC ERP</h3><span>Ayurved College</span></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section-title">Main</div>
+      <a href="dashboard.html" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+      <div class="nav-section-title">Academic</div>
+      <a href="students.html" class="nav-item"><i class="fas fa-user-graduate"></i><span>Students</span></a>
+      <a href="faculty.html" class="nav-item"><i class="fas fa-chalkboard-teacher"></i><span>Faculty</span></a>
+      <a href="attendance.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Attendance</span></a>
+      <a href="timetable.html" class="nav-item active"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+      <a href="exams.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Examinations</span></a>
+      <div class="nav-section-title">Finance</div>
+      <a href="fees.html" class="nav-item"><i class="fas fa-rupee-sign"></i><span>Fee Management</span></a>
+      <div class="nav-section-title">Facilities</div>
+      <a href="library.html" class="nav-item"><i class="fas fa-book"></i><span>Library</span></a>
+      <a href="hostel.html" class="nav-item"><i class="fas fa-building"></i><span>Hostel</span></a>
+      <div class="nav-section-title">Reports</div>
+      <a href="reports.html" class="nav-item"><i class="fas fa-chart-bar"></i><span>Reports</span></a>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar">A</div>
+        <div class="user-info">
+          <p id="sidebarUserName">Admin</p>
+          <span id="sidebarUserRole">admin</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content" id="mainContent">
+    <header class="top-header">
+      <div class="header-left">
+        <button class="sidebar-toggle" id="sidebarToggle"><i class="fas fa-bars"></i></button>
+        <div>
+          <div class="page-title">Timetable Management</div>
+          <div class="breadcrumb">
+            <i class="fas fa-home"></i><span>Home</span> / Timetable
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" onclick="APP.toggleTheme()">
+          <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="TIMETABLE.print()">
+          <i class="fas fa-print"></i> Print
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="TIMETABLE.clearYear()">
+          <i class="fas fa-trash"></i> Clear
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="AUTH.logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </header>
+
+    <div class="page-content">
+      <div class="card">
+        <div class="tt-filters">
+          <label style="font-weight:600;font-size:0.85rem">
+            <i class="fas fa-graduation-cap"></i> Year:
+          </label>
+          <select id="ttYear" onchange="TIMETABLE.renderGrid()">
+            <option>1st</option><option>2nd</option>
+            <option>3rd</option><option>4th</option>
+          </select>
+          <label style="font-weight:600;font-size:0.85rem">Semester:</label>
+          <select id="ttSem" onchange="TIMETABLE.renderGrid()">
+            <option>Odd</option><option>Even</option>
+          </select>
+          <div style="margin-left:auto">
+            <span style="font-size:0.78rem;color:var(--text-muted)">
+              <i class="fas fa-info-circle"></i>
+              Click any cell to add/edit lecture
+            </span>
+          </div>
+        </div>
+
+        <div class="table-wrap" id="ttTableWrap"
+          style="overflow-x:auto;padding:16px">
+          <table class="data-table" id="ttTable"
+            style="min-width:900px;border-collapse:separate;border-spacing:4px">
+            <thead id="ttHead"></thead>
+            <tbody id="ttBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card-footer"
+          style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;gap:16px;font-size:0.78rem">
+            <span style="color:var(--text-muted)">
+              <i class="fas fa-mouse-pointer"></i>
+              Click empty cell to add | Click filled cell to edit
+            </span>
+          </div>
+          <div class="designed-by-footer">
+            Designed &amp; Developed by
+            <a href="tel:+919518356305">Dr. Jadhav V R (95183 56305)</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CELL EDIT MODAL -->
+<div class="modal-overlay hidden" id="ttCellModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>
+        <i class="fas fa-calendar-alt"></i>
+        <span id="ttModalTitle">Edit Slot</span>
+      </h3>
+      <button class="modal-close" onclick="closeModal('ttCellModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ttDay"/>
+      <input type="hidden" id="ttPeriod"/>
+      <input type="hidden" id="ttCellYear"/>
+      <input type="hidden" id="ttCellSem"/>
+      <input type="hidden" id="ttCellId"/>
+
+      <div class="form-group">
+        <label>Subject / Topic *</label>
+        <input type="text" id="ttSubject" placeholder="e.g. Kriya Sharir"/>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Faculty</label>
+          <select id="ttFaculty">
+            <option value="">Select Faculty</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Room / Hall</label>
+          <input type="text" id="ttRoom" placeholder="e.g. Hall 1"/>
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select id="ttType">
+            <option>Lecture</option>
+            <option>Practical</option>
+            <option>Tutorial</option>
+            <option>Clinical</option>
+            <option>Seminar</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Color</label>
+          <input type="color" id="ttColor" value="#1a6b3c"
+            style="height:40px;width:100%;cursor:pointer"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-danger btn-sm" onclick="TIMETABLE.deleteCell()">
+        <i class="fas fa-trash"></i> Remove
+      </button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline" onclick="closeModal('ttCellModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="TIMETABLE.saveCell()">
+          <i class="fas fa-save"></i> Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/db.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/backup.js"></script>
+<script src="../assets/js/app.js"></script>
+<script src="../assets/js/timetable.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => document.getElementById('pageLoader').style.display = 'none', 500);
+  APP.init();
+  TIMETABLE.init();
+});
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+</script>
+</body>
+</html>
