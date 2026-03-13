@@ -1,0 +1,48 @@
+/* ================================================================
+   DAMC ERP — Print Stylesheet
+   Designed & Developed by Dr. Jadhav V R (95183 56305)
+   ================================================================ */
+@media print {
+  /* Hide unnecessary elements */
+  .sidebar, .top-header, .tabs-header,
+  .btn, .td-actions, .filter-bar,
+  .mark-all-btns, .bulk-bar,
+  .page-loader, .toast-container,
+  .modal-overlay, .header-right,
+  .no-print { display: none !important; }
+
+  /* Reset layout */
+  body { background: white !important; color: black !important; }
+  .main-content { margin-left: 0 !important; }
+  .page-content { padding: 0 !important; }
+
+  /* Cards */
+  .card { box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    break-inside: avoid; }
+
+  /* Tables */
+  .data-table th { background: #1a6b3c !important;
+    color: white !important; -webkit-print-color-adjust: exact; }
+  .data-table tr:nth-child(even) {
+    background: #f8fafc !important;
+    -webkit-print-color-adjust: exact; }
+
+  /* Print header */
+  body::before {
+    content: "Dhanwantari Ayurved Medical College & Hospital, Udgir";
+    display: block; text-align: center;
+    font-size: 14pt; font-weight: bold;
+    border-bottom: 2px solid #1a6b3c;
+    padding-bottom: 8px; margin-bottom: 16px;
+  }
+
+  /* Footer */
+  body::after {
+    content: "Designed & Developed by Dr. Jadhav V R (95183 56305) | DAMC ERP v2.0 | Printed: " attr(data-print-date);
+    display: block; text-align: center;
+    font-size: 8pt; color: #94a3b8;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 8px; margin-top: 16px;
+  }
+}
