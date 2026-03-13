@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reports — DAMC ERP</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="../assets/css/main.css"/>
+  <style>
+    .report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .report-card{background:var(--bg-card);border:1px solid var(--border);
+      border-radius:var(--radius-lg);padding:20px;cursor:pointer;
+      transition:var(--transition);text-align:center}
+    .report-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);
+      border-color:var(--primary)}
+    .report-card-icon{width:56px;height:56px;border-radius:var(--radius-lg);
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.4rem;margin:0 auto 12px}
+    .report-card h4{font-size:0.92rem;font-weight:600;margin-bottom:4px}
+    .report-card p{font-size:0.75rem;color:var(--text-muted)}
+    .chart-wrap{height:260px}
+    .designed-by-footer{text-align:center;padding:12px;
+      font-size:0.72rem;color:var(--text-muted)}
+    .designed-by-footer a{color:var(--primary);font-weight:600}
+    @media(max-width:900px){.report-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:600px){.report-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="page-loader" id="pageLoader">
+  <div class="loader-ring"></div><p>Loading Reports...</p>
+</div>
+<div class="modal-overlay hidden" id="sidebarOverlay"
+  style="z-index:999;background:rgba(0,0,0,0.5)"></div>
+
+<div class="app-layout">
+  <nav class="sidebar" id="mainSidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fas fa-leaf"></i></div>
+      <div class="brand-text"><h3>DAMC ERP</h3><span>Ayurved College</span></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section-title">Main</div>
+      <a href="dashboard.html" class="nav-item">
+        <i class="fas fa-th-large"></i><span>Dashboard</span></a>
+      <div class="nav-section-title">Academic</div>
+      <a href="students.html" class="nav-item">
+        <i class="fas fa-user-graduate"></i><span>Students</span></a>
+      <a href="faculty.html" class="nav-item">
+        <i class="fas fa-chalkboard-teacher"></i><span>Faculty</span></a>
+      <a href="attendance.html" class="nav-item">
+        <i class="fas fa-calendar-check"></i><span>Attendance</span></a>
+      <a href="timetable.html" class="nav-item">
+        <i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+      <a href="exams.html" class="nav-item">
+        <i class="fas fa-file-alt"></i><span>Examinations</span></a>
+      <div class="nav-section-title">Finance</div>
+      <a href="fees.html" class="nav-item">
+        <i class="fas fa-rupee-sign"></i><span>Fee Management</span></a>
+      <div class="nav-section-title">Facilities</div>
+      <a href="library.html" class="nav-item">
+        <i class="fas fa-book"></i><span>Library</span></a>
+      <a href="hostel.html" class="nav-item">
+        <i class="fas fa-building"></i><span>Hostel</span></a>
+      <div class="nav-section-title">Reports</div>
+      <a href="reports.html" class="nav-item active">
+        <i class="fas fa-chart-bar"></i><span>Reports</span></a>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar">A</div>
+        <div class="user-info">
+          <p id="sidebarUserName">Admin</p>
+          <span id="sidebarUserRole">admin</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content" id="mainContent">
+    <header class="top-header">
+      <div class="header-left">
+        <button class="sidebar-toggle" id="sidebarToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div>
+          <div class="page-title">Reports & Analytics</div>
+          <div class="breadcrumb">
+            <i class="fas fa-home"></i><span>Home</span> / Reports
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" onclick="APP.toggleTheme()">
+          <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+        <button class="btn btn-primary" onclick="BACKUP.exportFull();
+          APP.toast('Full backup downloaded!','success')">
+          <i class="fas fa-download"></i> Full Backup
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="AUTH.logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Quick Export Cards -->
+      <div class="report-grid" style="margin-bottom:24px">
+        <div class="report-card"
+          onclick="exportReport('students')">
+          <div class="report-card-icon"
+            style="background:#dcfce7;color:#16a34a">
+            <i class="fas fa-user-graduate"></i>
+          </div>
+          <h4>Student Report</h4>
+          <p>Full student list with details</p>
+          <button class="btn btn-primary btn-sm" style="margin-top:10px">
+            <i class="fas fa-download"></i> Export CSV
+          </button>
+        </div>
+        <div class="report-card"
+          onclick="exportReport('attendance')">
+          <div class="report-card-icon"
+            style="background:#dbeafe;color:#1d4ed8">
+            <i class="fas fa-calendar-check"></i>
+          </div>
+          <h4>Attendance Report</h4>
+          <p>Complete attendance records</p>
+          <button class="btn btn-primary btn-sm" style="margin-top:10px">
+            <i class="fas fa-download"></i> Export CSV
+          </button>
+        </div>
+        <div class="report-card"
+          onclick="exportReport('fees')">
+          <div class="report-card-icon"
+            style="background:#fef3c7;color:#d97706">
+            <i class="fas fa-rupee-sign"></i>
+          </div>
+          <h4>Fee Report</h4>
+          <p>All fee collections & pending</p>
+          <button class="btn btn-primary btn-sm" style="margin-top:10px">
+            <i class="fas fa-download"></i> Export CSV
+          </button>
+        </div>
+        <div class="report-card"
+          onclick="exportReport('faculty')">
+          <div class="report-card-icon"
+            style="background:#ede9fe;color:#7c3aed">
+            <i class="fas fa-chalkboard-teacher"></i>
+          </div>
+          <h4>Faculty Report</h4>
+          <p>Faculty list with details</p>
+          <button class="btn btn-primary btn-sm" style="margin-top:10px">
+            <i class="fas fa-download"></i> Export CSV
+          </button>
+        </div>
+        <div class="report-card"
+          onclick="exportReport('library')">
+          <div class="report-card-icon"
+            style="background:#ccfbf1;color:#0d9488">
+            <i class="fas fa-book"></i>
+          </div>
+          <h4>Library Report</h4>
+          <p>Books & issue/return records</p>
+          <button class="btn btn-primary btn-sm" style="margin-top:10px">
+            <i class="fas fa-download"></i> Export CSV
+          </button>
+        </div>
+        <div class="report-card"
+          onclick="BACKUP.exportFull();
+            APP.toast('Full backup exported!','success')">
+          <div class="report-card-icon"
+            style="background:#fee2e2;color:#dc2626">
+            <i class="fas fa-database"></i>
+          </div>
+          <h4>Full System Backup</h4>
+          <p>Complete JSON backup of all data</p>
+          <button class="btn btn-danger btn-sm" style="margin-top:10px">
+            <i class="fas fa-download"></i> Export JSON
+          </button>
+        </div>
+      </div>
+
+      <!-- Analytics Charts -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;
+        margin-bottom:20px">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-users"></i> Students by Year
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap">
+              <canvas id="rptStudentChart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-rupee-sign"></i> Fee Collection Overview
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap">
+              <canvas id="rptFeeChart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-venus-mars"></i> Gender Distribution
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap">
+              <canvas id="rptGenderChart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-tags"></i> Category Distribution
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap">
+              <canvas id="rptCategoryChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Table -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-table"></i> System Summary
+          </div>
+          <button class="btn btn-outline btn-sm"
+            onclick="APP.Utils.printSection('summaryTableWrap')">
+            <i class="fas fa-print"></i> Print
+          </button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap" id="summaryTableWrap">
+            <table class="data-table" id="summaryTable"></table>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="designed-by-footer">
+            Designed &amp; Developed by
+            <a href="tel:+919518356305">
+              Dr. Jadhav V R (95183 56305)
+            </a>
+            | DAMC ERP v2.0 |
+            &copy; Dhanwantari Ayurved Medical College & Hospital, Udgir
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/db.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/backup.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() =>
+    document.getElementById('pageLoader').style.display = 'none', 500);
+  APP.init();
+  renderCharts();
+  renderSummaryTable();
+});
+
+function renderCharts() {
+  const students   = DB.get(DB.KEYS.STUDENTS);
+  const fees       = DB.get(DB.KEYS.FEES);
+  const feeStructs = DB.get(DB.KEYS.FEE_STRUCT);
+
+  // 1. Students by Year
+  const years = ['1st','2nd','3rd','4th'];
+  new Chart(document.getElementById('rptStudentChart'), {
+    type: 'bar',
+    data: {
+      labels: years.map(y => y + ' Year'),
+      datasets: [{
+        label: 'Students',
+        data: years.map(y => students.filter(s => s.year === y).length),
+        backgroundColor: ['#1a6b3c','#1a237e','#e8a020','#0d9488'],
+        borderRadius: 8, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // 2. Fee Collected vs Expected
+  const totalExpected = students.reduce((sum, s) => {
+    return sum + feeStructs
+      .filter(fs => fs.year === s.year)
+      .reduce((s2, fs) => s2 + (fs.amount || 0), 0);
+  }, 0);
+  const totalCollected = fees.reduce((s, p) => s + (p.amountPaid || 0), 0);
+  const totalPending   = Math.max(0, totalExpected - totalCollected);
+
+  new Chart(document.getElementById('rptFeeChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Collected','Pending'],
+      datasets: [{
+        data: [totalCollected, totalPending],
+        backgroundColor: ['#1a6b3c','#dc2626'],
+        borderWidth: 0,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: ctx =>
+              ' ₹' + ctx.raw.toLocaleString('en-IN')
+          }
+        }
+      }
+    }
+  });
+
+  // 3. Gender
+  const male   = students.filter(s => s.gender === 'Male').length;
+  const female = students.filter(s => s.gender === 'Female').length;
+  new Chart(document.getElementById('rptGenderChart'), {
+    type: 'pie',
+    data: {
+      labels: ['Male','Female'],
+      datasets: [{
+        data: [male, female],
+        backgroundColor: ['#1a237e','#ec4899'],
+        borderWidth: 2,
+        borderColor: 'var(--bg-card)',
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+
+  // 4. Category
+  const cats = ['Open','OBC','SC','ST','NT','EWS'];
+  new Chart(document.getElementById('rptCategoryChart'), {
+    type: 'bar',
+    data: {
+      labels: cats,
+      datasets: [{
+        label: 'Students',
+        data: cats.map(c =>
+          students.filter(s => s.category === c).length),
+        backgroundColor: [
+          '#1a6b3c','#1a237e','#e8a020',
+          '#dc2626','#7c3aed','#0d9488'
+        ],
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderSummaryTable() {
+  const students  = DB.get(DB.KEYS.STUDENTS);
+  const faculty   = DB.get(DB.KEYS.FACULTY);
+  const fees      = DB.get(DB.KEYS.FEES);
+  const att       = DB.get(DB.KEYS.ATTENDANCE);
+  const books     = DB.get(DB.KEYS.LIBRARY);
+  const issues    = DB.get(DB.KEYS.LIB_ISSUES);
+  const exams     = DB.get(DB.KEYS.EXAMS);
+  const hostel    = DB.get(DB.KEYS.HOSTEL);
+
+  const totalFee  = fees.reduce((s,f) => s + (f.amountPaid||0), 0);
+  const attPct    = att.length > 0
+    ? Math.round(att.filter(a => a.status === 'present').length /
+        att.length * 100) : 0;
+
+  const rows = [
+    ['Total Students',    students.length,        'fa-user-graduate', '#1a6b3c'],
+    ['Active Students',   students.filter(s=>s.active).length, 'fa-user-check', '#16a34a'],
+    ['Total Faculty',     faculty.length,          'fa-chalkboard-teacher', '#1a237e'],
+    ['Total Fee Collected', APP.Utils.formatCurrency(totalFee), 'fa-rupee-sign', '#d97706'],
+    ['Attendance Records', att.length,             'fa-calendar-check', '#0284c7'],
+    ['Avg Attendance %',  attPct + '%',            'fa-percent', '#7c3aed'],
+    ['Library Books',     books.reduce((s,b) => s+(b.copies||1),0), 'fa-book', '#0d9488'],
+    ['Books Issued',      issues.filter(i=>!i.returnDate).length, 'fa-hand-holding-heart', '#dc2626'],
+    ['Exams Scheduled',   exams.length,            'fa-file-alt', '#ec4899'],
+    ['Hostel Rooms',      hostel.length,           'fa-building', '#f59e0b'],
+  ];
+
+  document.getElementById('summaryTable').innerHTML = `
+    <thead>
+      <tr>
+        <th style="background:var(--primary);color:white">#</th>
+        <th style="background:var(--primary);color:white">Parameter</th>
+        <th style="background:var(--primary);color:white">Value</th>
+        <th style="background:var(--primary);color:white">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map((r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>
+            <i class="fas ${r[2]}"
+              style="color:${r[3]};margin-right:8px"></i>
+            ${r[0]}
+          </td>
+          <td class="text-bold"
+            style="font-size:1rem;color:${r[3]}">${r[1]}</td>
+          <td>
+            <span class="badge badge-green">
+              <i class="fas fa-check"></i> Active
+            </span>
+          </td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+}
+
+function exportReport(type) {
+  const keyMap = {
+    students:   DB.KEYS.STUDENTS,
+    attendance: DB.KEYS.ATTENDANCE,
+    fees:       DB.KEYS.FEES,
+    faculty:    DB.KEYS.FACULTY,
+    library:    DB.KEYS.LIBRARY,
+  };
+  const headers = {
+    students:   ['rollNo','name','gender','year','batch',
+                 'category','phone','email','active'],
+    attendance: ['date','rollNo','studentName','year',
+                 'session','status','savedBy'],
+    fees:       ['receiptNo','paymentDate','studentName','rollNo',
+                 'feeName','amountPaid','paymentMode','collectedBy'],
+    faculty:    ['empId','name','designation','qualification',
+                 'phone','email','joinDate'],
+    library:    ['accNo','title','author','publisher',
+                 'category','copies','available'],
+  };
+  const data = DB.get(keyMap[type]);
+  if (!data.length) {
+    APP.toast('No data to export!', 'warning');
+    return;
+  }
+  BACKUP.exportCSV(
+    data,
+    `DAMC_${type}_${new Date().toISOString().split('T')[0]}`,
+    headers[type]
+  );
+  APP.toast(`${type} report exported!`, 'success');
+}
+</script>
+</body>
+</html>
