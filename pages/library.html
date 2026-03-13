@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Library — DAMC ERP</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/main.css"/>
+  <style>
+    .filter-bar{display:flex;align-items:center;gap:10px;padding:14px 20px;
+      flex-wrap:wrap;background:var(--bg-table);border-bottom:1px solid var(--border)}
+    .filter-bar select,.filter-bar input{padding:7px 12px;
+      border:1.5px solid var(--border);border-radius:var(--radius-md);
+      background:var(--bg-card);color:var(--text-primary);font-size:0.83rem}
+    .filter-search{position:relative}
+    .filter-search i{position:absolute;left:10px;top:50%;
+      transform:translateY(-50%);color:var(--text-muted);font-size:0.82rem}
+    .filter-search input{padding-left:30px;min-width:220px}
+    .row-absent{background:rgba(220,38,38,0.04)!important}
+    .designed-by-footer{text-align:center;padding:10px;
+      font-size:0.72rem;color:var(--text-muted)}
+    .designed-by-footer a{color:var(--primary);font-weight:600}
+    .form-section-title{font-size:0.8rem;font-weight:600;color:var(--primary);
+      text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;
+      padding-bottom:6px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;gap:8px}
+  </style>
+</head>
+<body>
+<div class="page-loader" id="pageLoader">
+  <div class="loader-ring"></div><p>Loading Library...</p>
+</div>
+<div class="modal-overlay hidden" id="sidebarOverlay"
+  style="z-index:999;background:rgba(0,0,0,0.5)"></div>
+
+<div class="app-layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="mainSidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fas fa-leaf"></i></div>
+      <div class="brand-text"><h3>DAMC ERP</h3><span>Ayurved College</span></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section-title">Main</div>
+      <a href="dashboard.html" class="nav-item">
+        <i class="fas fa-th-large"></i><span>Dashboard</span></a>
+      <div class="nav-section-title">Academic</div>
+      <a href="students.html" class="nav-item">
+        <i class="fas fa-user-graduate"></i><span>Students</span></a>
+      <a href="faculty.html" class="nav-item">
+        <i class="fas fa-chalkboard-teacher"></i><span>Faculty</span></a>
+      <a href="attendance.html" class="nav-item">
+        <i class="fas fa-calendar-check"></i><span>Attendance</span></a>
+      <a href="timetable.html" class="nav-item">
+        <i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+      <a href="exams.html" class="nav-item">
+        <i class="fas fa-file-alt"></i><span>Examinations</span></a>
+      <div class="nav-section-title">Finance</div>
+      <a href="fees.html" class="nav-item">
+        <i class="fas fa-rupee-sign"></i><span>Fee Management</span></a>
+      <div class="nav-section-title">Facilities</div>
+      <a href="library.html" class="nav-item active">
+        <i class="fas fa-book"></i><span>Library</span></a>
+      <a href="hostel.html" class="nav-item">
+        <i class="fas fa-building"></i><span>Hostel</span></a>
+      <div class="nav-section-title">Reports</div>
+      <a href="reports.html" class="nav-item">
+        <i class="fas fa-chart-bar"></i><span>Reports</span></a>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar">A</div>
+        <div class="user-info">
+          <p id="sidebarUserName">Admin</p>
+          <span id="sidebarUserRole">admin</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main-content" id="mainContent">
+    <header class="top-header">
+      <div class="header-left">
+        <button class="sidebar-toggle" id="sidebarToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div>
+          <div class="page-title">Library Management</div>
+          <div class="breadcrumb">
+            <i class="fas fa-home"></i><span>Home</span> / Library
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" onclick="APP.toggleTheme()">
+          <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+        <button class="btn btn-primary" onclick="LIBRARY.openAddBook()">
+          <i class="fas fa-plus"></i> Add Book
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="LIBRARY.exportCSV()">
+          <i class="fas fa-file-csv"></i> Export
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="AUTH.logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Stats -->
+      <div class="stats-grid"
+        style="grid-template-columns:repeat(6,1fr);margin-bottom:20px">
+        <div class="stat-card blue" style="padding:14px">
+          <div class="stat-icon"><i class="fas fa-book"></i></div>
+          <div class="stat-value" style="font-size:1.4rem" id="libStatTitles">0</div>
+          <div class="stat-label">Titles</div>
+        </div>
+        <div class="stat-card green" style="padding:14px">
+          <div class="stat-icon"><i class="fas fa-copy"></i></div>
+          <div class="stat-value" style="font-size:1.4rem" id="libStatTotal">0</div>
+          <div class="stat-label">Total Copies</div>
+        </div>
+        <div class="stat-card orange" style="padding:14px">
+          <div class="stat-icon"><i class="fas fa-hand-holding-heart"></i></div>
+          <div class="stat-value" style="font-size:1.4rem" id="libStatIssued">0</div>
+          <div class="stat-label">Issued</div>
+        </div>
+        <div class="stat-card teal" style="padding:14px">
+          <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="stat-value" style="font-size:1.4rem" id="libStatAvail">0</div>
+          <div class="stat-label">Available</div>
+        </div>
+        <div class="stat-card red" style="padding:14px">
+          <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+          <div class="stat-value" style="font-size:1.4rem" id="libStatOverdue">0</div>
+          <div class="stat-label">Overdue</div>
+        </div>
+        <div class="stat-card purple" style="padding:14px">
+          <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
+          <div class="stat-value" style="font-size:1.1rem" id="libStatFine">₹0</div>
+          <div class="stat-label">Fine Collected</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-header" style="margin-bottom:0">
+        <button class="tab-btn active" onclick="switchLibTab('catalog')">
+          <i class="fas fa-book"></i> Book Catalog
+        </button>
+        <button class="tab-btn" onclick="switchLibTab('issued')">
+          <i class="fas fa-hand-holding-heart"></i> Issued Books
+        </button>
+        <button class="tab-btn" onclick="switchLibTab('overdue')">
+          <i class="fas fa-exclamation-triangle"></i> Overdue
+        </button>
+      </div>
+
+      <!-- TAB: Catalog -->
+      <div class="tab-pane active card" id="libTab-catalog"
+        style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+        <div class="filter-bar">
+          <div class="filter-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="bookSearch"
+              placeholder="Search title, author, acc no..."
+              oninput="applyBookFilter()"/>
+          </div>
+          <select id="bookCatFilter" onchange="applyBookFilter()">
+            <option value="">All Categories</option>
+            <option>Ayurved Samhita</option>
+            <option>Dravyaguna</option>
+            <option>Kayachikitsa</option>
+            <option>Modern Science</option>
+            <option>Reference</option>
+            <option>Other</option>
+          </select>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm"
+              onclick="APP.Utils.printSection('bookTableWrap')">
+              <i class="fas fa-print"></i> Print
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap" id="bookTableWrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Acc. No</th><th>Title</th><th>Author</th>
+                <th>Publisher</th><th>Category</th>
+                <th style="text-align:center">Copies</th>
+                <th style="text-align:center">Available</th>
+                <th>Location</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bookTableBody"></tbody>
+          </table>
+        </div>
+        <div class="card-footer"
+          style="display:flex;justify-content:space-between;align-items:center">
+          <span id="bookCount"
+            style="font-size:0.82rem;color:var(--text-muted)">Loading...</span>
+          <div class="designed-by-footer">
+            Designed &amp; Developed by
+            <a href="tel:+919518356305">Dr. Jadhav V R (95183 56305)</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Issued -->
+      <div class="tab-pane card" id="libTab-issued"
+        style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+        <div class="filter-bar">
+          <div class="filter-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="issueSearch"
+              placeholder="Search student or book..."
+              oninput="applyIssueFilter()"/>
+          </div>
+          <select id="issueStatusFilter" onchange="applyIssueFilter()">
+            <option value="">All</option>
+            <option value="active">Active (Not Returned)</option>
+            <option value="returned">Returned</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student</th><th>Book</th><th>Issue Date</th>
+                <th>Due Date</th><th>Status</th>
+                <th>Fine</th><th>Action</th><th>Slip</th>
+              </tr>
+            </thead>
+            <tbody id="issuedTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: Overdue -->
+      <div class="tab-pane card" id="libTab-overdue"
+        style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-exclamation-triangle"
+              style="color:var(--danger)"></i>
+            Overdue Books
+          </div>
+          <button class="btn btn-outline btn-sm"
+            onclick="APP.Utils.printSection('overdueWrap')">
+            <i class="fas fa-print"></i> Print
+          </button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap" id="overdueWrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Student</th><th>Book</th>
+                  <th>Due Date</th><th>Days Overdue</th>
+                  <th>Fine (₹2/day)</th><th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="overdueTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ISSUE MODAL -->
+<div class="modal-overlay hidden" id="issueModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-hand-holding-heart"></i> Issue Book</h3>
+      <button class="modal-close" onclick="closeModal('issueModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="issueBookId"/>
+      <div style="padding:12px;background:var(--bg-table);
+        border-radius:var(--radius-md);margin-bottom:16px">
+        <strong id="issueBookTitle" style="font-size:1rem"></strong>
+        <div id="issueAccNo"
+          style="color:var(--primary);font-size:0.82rem;margin-top:2px"></div>
+      </div>
+      <div class="form-group">
+        <label>Select Student *</label>
+        <select id="issueStudentSel">
+          <option value="">Select Student</option>
+        </select>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Issue Date</label>
+          <input type="date" id="issueDate"/>
+        </div>
+        <div class="form-group">
+          <label>Due Date (Return By)</label>
+          <input type="date" id="issueDueDate"/>
+        </div>
+      </div>
+      <p style="font-size:0.75rem;color:var(--text-muted)">
+        <i class="fas fa-info-circle"></i>
+        Fine: ₹2 per day after due date
+      </p>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="font-size:0.72rem;color:var(--text-muted)">
+        <i class="fas fa-code"></i> Dr. Jadhav V R | 95183 56305
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline"
+          onclick="closeModal('issueModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="LIBRARY.saveIssue()">
+          <i class="fas fa-save"></i> Issue Book
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD BOOK MODAL -->
+<div class="modal-overlay hidden" id="bookModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="bookModalTitle">
+        <i class="fas fa-plus"></i> Add New Book
+      </h3>
+      <button class="modal-close" onclick="closeModal('bookModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="bookForm"
+        onsubmit="event.preventDefault();LIBRARY.saveBook()">
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>Acc. No. *</label>
+            <input type="text" id="bAccNo" placeholder="ACC001"/>
+          </div>
+          <div class="form-group form-full">
+            <label>Book Title *</label>
+            <input type="text" id="bTitle" placeholder="Full book title"/>
+          </div>
+          <div class="form-group">
+            <label>Author</label>
+            <input type="text" id="bAuthor" placeholder="Author name"/>
+          </div>
+          <div class="form-group">
+            <label>Publisher</label>
+            <input type="text" id="bPublisher" placeholder="Publisher"/>
+          </div>
+          <div class="form-group">
+            <label>Year</label>
+            <input type="text" id="bYear" placeholder="2024"/>
+          </div>
+          <div class="form-group">
+            <label>ISBN</label>
+            <input type="text" id="bIsbn" placeholder="978-..."/>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="bCategory">
+              <option>Ayurved Samhita</option>
+              <option>Dravyaguna</option>
+              <option>Kayachikitsa</option>
+              <option>Shalya Tantra</option>
+              <option>Modern Science</option>
+              <option>Reference</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>No. of Copies</label>
+            <input type="number" id="bCopies" min="1" value="1"/>
+          </div>
+          <div class="form-group">
+            <label>Location / Rack</label>
+            <input type="text" id="bLocation" placeholder="Rack-A1"/>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="font-size:0.72rem;color:var(--text-muted)">
+        <i class="fas fa-code"></i> Dr. Jadhav V R | 95183 56305
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline"
+          onclick="closeModal('bookModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="LIBRARY.saveBook()">
+          <i class="fas fa-save"></i> Save Book
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/db.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/backup.js"></script>
+<script src="../assets/js/app.js"></script>
+<script src="../assets/js/library.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() =>
+    document.getElementById('pageLoader').style.display = 'none', 500);
+  APP.init();
+  LIBRARY.renderBooks();
+  LIBRARY.renderIssued();
+  renderOverdue();
+});
+
+function switchLibTab(tab) {
+  document.querySelectorAll('[id^="libTab-"]')
+    .forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn')
+    .forEach(b => b.classList.remove('active'));
+  document.getElementById(`libTab-${tab}`)?.classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'overdue') renderOverdue();
+  if (tab === 'issued')  LIBRARY.renderIssued();
+}
+
+function applyBookFilter() {
+  const f = {
+    query:    document.getElementById('bookSearch').value,
+    category: document.getElementById('bookCatFilter').value
+  };
+  LIBRARY._currentFilter = f;
+  LIBRARY.renderBooks(f);
+}
+
+function applyIssueFilter() {
+  LIBRARY.renderIssued({
+    query:  document.getElementById('issueSearch').value,
+    status: document.getElementById('issueStatusFilter').value
+  });
+}
+
+function renderOverdue() {
+  const issues = DB.get(DB.KEYS.LIB_ISSUES).filter(i => {
+    return !i.returnDate && new Date(i.dueDate) < new Date();
+  });
+  const tbody = document.getElementById('overdueTableBody');
+  if (!tbody) return;
+  if (!issues.length) {
+    tbody.innerHTML = `<tr><td colspan="6">
+      <div class="empty-state" style="padding:20px">
+        <i class="fas fa-check-circle" style="color:var(--success)"></i>
+        <p>No overdue books! All books returned on time.</p>
+      </div></td></tr>`;
+    return;
+  }
+  const today = new Date();
+  tbody.innerHTML = issues.map(i => {
+    const days = Math.ceil(
+      (today - new Date(i.dueDate)) / (1000 * 60 * 60 * 24)
+    );
+    const fine = days * 2;
+    return `
+      <tr>
+        <td>
+          <strong>${i.studentName}</strong>
+          <div style="font-size:0.72rem;color:var(--text-muted)">
+            ${i.rollNo}
+          </div>
+        </td>
+        <td>
+          <strong>${i.bookTitle}</strong>
+          <div style="font-size:0.72rem;color:var(--text-muted)">
+            ${i.accNo}
+          </div>
+        </td>
+        <td style="color:var(--danger)">
+          ${APP.Utils.formatDate(i.dueDate)}
+        </td>
+        <td>
+          <span class="badge badge-red">${days} days</span>
+        </td>
+        <td class="text-bold" style="color:var(--danger)">
+          ${APP.Utils.formatCurrency(fine)}
+        </td>
+        <td>
+          <button class="btn btn-sm btn-success"
+            onclick="LIBRARY.returnBook('${i.id}',${fine})">
+            <i class="fas fa-undo"></i> Return
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+</script>
+</body>
+</html>
