@@ -1,507 +1,552 @@
 /**
- * DAMC ERP — Student Management Module
- * Designed & Developed by Dr. Jadhav V R (95183 56305)
+ * DAMC ERP — Students Module (Complete Fresh Version)
  * Dhanwantari Ayurved Medical College & Hospital, Udgir
+ * Designed & Developed by Dr. Jadhav V R (95183 56305)
  */
 
 const STUDENTS = {
 
-  // ── Render Student List ──────────────────────────────────────
-  renderList(filter = {}) {
-    let list = DB.get(DB.KEYS.STUDENTS);
+  state: {
+    all:       [],
+    filtered:  [],
+    editingId: null,
+    selected:  new Set()
+  },
 
-    // Apply filters
-    if (filter.year)   list = list.filter(s => s.year   === filter.year);
-    if (filter.gender) list = list.filter(s => s.gender === filter.gender);
-    if (filter.batch)  list = list.filter(s => s.batch  === filter.batch);
-    if (filter.category) list = list.filter(s => s.category === filter.category);
-    if (filter.active !== undefined) list = list.filter(s => s.active === filter.active);
-    if (filter.query) {
-      const q = filter.query.toLowerCase();
-      list = list.filter(s =>
-        s.name?.toLowerCase().includes(q)   ||
-        s.rollNo?.toLowerCase().includes(q) ||
-        s.phone?.includes(q)                ||
-        s.email?.toLowerCase().includes(q)
-      );
+  // ──────────────────── INIT ──────────────────────────────────
+  init() {
+    try {
+      this.seedDefaultData();
+      this.loadAll();
+      this.renderTable();
+      this.updateStats();
+      console.log('✅ Students module initialized');
+    } catch (err) {
+      console.error('❌ Students init error:', err);
     }
+  },
 
-    const tbody = document.getElementById('studentTableBody');
+  // ──────────────────── SEED DATA ─────────────────────────────
+  seedDefaultData() {
+    const existing = DB.getAll('students');
+    if (existing && existing.length > 0) return;
+
+    const sampleStudents = [
+      { rollNo:'DAMC001', name:'Rahul Suresh Patil',    gender:'Male',   dob:'2000-05-15',
+        year:'1st Year', course:'BAMS', batch:'2024-25', category:'OBC',
+        phone:'9876543210', email:'rahul.patil@email.com',
+        address:'Udgir, Latur', fatherName:'Suresh Patil', fatherPhone:'9876543211',
+        motherName:'Sunita Patil', motherPhone:'9876543212',
+        aadhar:'1234-5678-9012', bloodGroup:'B+', religion:'Hindu', status:'Active' },
+
+      { rollNo:'DAMC002', name:'Priya Ramesh Sharma',   gender:'Female', dob:'2001-03-22',
+        year:'2nd Year', course:'BAMS', batch:'2023-24', category:'General',
+        phone:'9876543220', email:'priya.sharma@email.com',
+        address:'Nanded', fatherName:'Ramesh Sharma', fatherPhone:'9876543221',
+        motherName:'Geeta Sharma', motherPhone:'9876543222',
+        aadhar:'9876-5432-1098', bloodGroup:'O+', religion:'Hindu', status:'Active' },
+
+      { rollNo:'DAMC003', name:'Aakash Vijay Deshmukh', gender:'Male',   dob:'1999-11-08',
+        year:'3rd Year', course:'BAMS', batch:'2022-23', category:'SC',
+        phone:'9876543230', email:'aakash.d@email.com',
+        address:'Latur', fatherName:'Vijay Deshmukh', fatherPhone:'9876543231',
+        motherName:'Lata Deshmukh', motherPhone:'9876543232',
+        aadhar:'1122-3344-5566', bloodGroup:'A+', religion:'Hindu', status:'Active' },
+
+      { rollNo:'DAMC004', name:'Sneha Anand Kulkarni',  gender:'Female', dob:'2002-07-19',
+        year:'1st Year', course:'BAMS', batch:'2024-25', category:'General',
+        phone:'9876543240', email:'sneha.k@email.com',
+        address:'Solapur', fatherName:'Anand Kulkarni', fatherPhone:'9876543241',
+        motherName:'Rekha Kulkarni', motherPhone:'9876543242',
+        aadhar:'2233-4455-6677', bloodGroup:'AB+', religion:'Hindu', status:'Active' },
+
+      { rollNo:'DAMC005', name:'Mohammad Arif Khan',    gender:'Male',   dob:'2000-01-25',
+        year:'2nd Year', course:'BAMS', batch:'2023-24', category:'OBC',
+        phone:'9876543250', email:'arif.khan@email.com',
+        address:'Osmanabad', fatherName:'Irfan Khan', fatherPhone:'9876543251',
+        motherName:'Nafisa Khan', motherPhone:'9876543252',
+        aadhar:'3344-5566-7788', bloodGroup:'B-', religion:'Islam', status:'Active' },
+
+      { rollNo:'DAMC006', name:'Anjali Prakash Jadhav', gender:'Female', dob:'2001-09-14',
+        year:'4th Year', course:'BAMS', batch:'2021-22', category:'NT',
+        phone:'9876543260', email:'anjali.j@email.com',
+        address:'Bidar', fatherName:'Prakash Jadhav', fatherPhone:'9876543261',
+        motherName:'Vaishali Jadhav', motherPhone:'9876543262',
+        aadhar:'4455-6677-8899', bloodGroup:'O-', religion:'Hindu', status:'Active' },
+
+      { rollNo:'DAMC007', name:'Suraj Baburao Mane',    gender:'Male',   dob:'1998-04-30',
+        year:'Intern',   course:'BAMS', batch:'2020-21', category:'ST',
+        phone:'9876543270', email:'suraj.mane@email.com',
+        address:'Gulbarga', fatherName:'Baburao Mane', fatherPhone:'9876543271',
+        motherName:'Savita Mane', motherPhone:'9876543272',
+        aadhar:'5566-7788-9900', bloodGroup:'A-', religion:'Hindu', status:'Active' },
+
+      { rollNo:'DAMC008', name:'Pooja Sanjay Rao',      gender:'Female', dob:'2002-12-03',
+        year:'1st Year', course:'BAMS', batch:'2024-25', category:'EWS',
+        phone:'9876543280', email:'pooja.rao@email.com',
+        address:'Hyderabad', fatherName:'Sanjay Rao', fatherPhone:'9876543281',
+        motherName:'Meera Rao', motherPhone:'9876543282',
+        aadhar:'6677-8899-0011', bloodGroup:'B+', religion:'Hindu', status:'Active' },
+
+      { rollNo:'DAMC009', name:'Rohit Ganesh Shinde',   gender:'Male',   dob:'2000-08-17',
+        year:'3rd Year', course:'BAMS', batch:'2022-23', category:'OBC',
+        phone:'9876543290', email:'rohit.s@email.com',
+        address:'Pune', fatherName:'Ganesh Shinde', fatherPhone:'9876543291',
+        motherName:'Kamla Shinde', motherPhone:'9876543292',
+        aadhar:'7788-9900-1122', bloodGroup:'AB-', religion:'Hindu', status:'Active' },
+
+      { rollNo:'DAMC010', name:'Kavita Dilip Pawar',    gender:'Female', dob:'2003-02-11',
+        year:'1st Year', course:'BAMS', batch:'2024-25', category:'General',
+        phone:'9876543300', email:'kavita.p@email.com',
+        address:'Aurangabad', fatherName:'Dilip Pawar', fatherPhone:'9876543301',
+        motherName:'Sushma Pawar', motherPhone:'9876543302',
+        aadhar:'8899-0011-2233', bloodGroup:'O+', religion:'Hindu', status:'Active' },
+
+      { rollNo:'DAMC011', name:'Nikhil Vitthal Kamble', gender:'Male',   dob:'1999-06-27',
+        year:'4th Year', course:'BAMS', batch:'2021-22', category:'SC',
+        phone:'9876543310', email:'nikhil.k@email.com',
+        address:'Kolhapur', fatherName:'Vitthal Kamble', fatherPhone:'9876543311',
+        motherName:'Laxmi Kamble', motherPhone:'9876543312',
+        aadhar:'9900-1122-3344', bloodGroup:'A+', religion:'Buddhism', status:'Active' },
+
+      { rollNo:'DAMC012', name:'Divya Rajesh Nair',     gender:'Female', dob:'2001-10-05',
+        year:'2nd Year', course:'BAMS', batch:'2023-24', category:'General',
+        phone:'9876543320', email:'divya.n@email.com',
+        address:'Nagpur', fatherName:'Rajesh Nair', fatherPhone:'9876543321',
+        motherName:'Gita Nair', motherPhone:'9876543322',
+        aadhar:'0011-2233-4455', bloodGroup:'B+', religion:'Hindu', status:'Active' },
+    ];
+
+    sampleStudents.forEach(s => {
+      DB.add('students', { ...s, id: DB.generateId(), createdAt: new Date().toISOString() });
+    });
+    console.log('✅ Student seed data added:', sampleStudents.length, 'students');
+  },
+
+  // ──────────────────── LOAD ──────────────────────────────────
+  loadAll() {
+    this.state.all      = DB.getAll('students') || [];
+    this.state.filtered = [...this.state.all];
+  },
+
+  // ──────────────────── RENDER TABLE ──────────────────────────
+  renderTable() {
+    const tbody = document.getElementById('studentsTableBody');
     if (!tbody) return;
+
+    const list = this.state.filtered;
 
     if (!list.length) {
       tbody.innerHTML = `
-        <tr><td colspan="9">
-          <div class="empty-state">
-            <i class="fas fa-user-graduate"></i>
-            <h4>No Students Found</h4>
-            <p>Try adjusting your filters or add a new student.</p>
-          </div>
+        <tr><td colspan="9"
+          style="text-align:center;padding:3rem;color:var(--text-muted)">
+          <i class="fas fa-user-slash fa-2x"></i><br/><br/>
+          No students found. Add students or clear filters.
         </td></tr>`;
-      document.getElementById('studentCount').textContent = '0 Students';
+      const rc = document.getElementById('recordCount');
+      if (rc) rc.textContent = '(0 records)';
       return;
     }
 
-    document.getElementById('studentCount').textContent =
-      `${list.length} Student${list.length > 1 ? 's' : ''}`;
+    tbody.innerHTML = list.map((s, i) => {
+      const initials = s.name
+        ? s.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase()
+        : '?';
+      const statusClass =
+        s.status === 'Active'   ? 'status-active'   :
+        s.status === 'Alumni'   ? 'status-alumni'   : 'status-inactive';
 
-    tbody.innerHTML = list.map((s, i) => `
-      <tr class="animate-in" style="animation-delay:${i * 0.03}s">
-        <td>
-          <input type="checkbox" class="student-check" value="${s.id}"
-            onchange="STUDENTS.toggleSelect('${s.id}')"/>
-        </td>
-        <td>
-          <div class="student-avatar-wrap">
-            ${s.photo
-              ? `<img src="${s.photo}" class="student-photo" alt="${s.name}"/>`
-              : `<div class="student-avatar">${APP.Utils.getInitials(s.name)}</div>`
-            }
-          </div>
-        </td>
-        <td>
-          <div class="student-name-cell">
-            <strong>${s.name}</strong>
-            <small>${s.email || '-'}</small>
-          </div>
-        </td>
-        <td><span class="text-primary text-bold">${s.rollNo}</span></td>
-        <td><span class="badge badge-blue">${s.year} Year</span></td>
-        <td>${s.phone || '-'}</td>
-        <td>
-          <span class="badge ${
-            s.category === 'Open' ? 'badge-blue' :
-            s.category === 'OBC'  ? 'badge-orange' :
-            s.category === 'SC'   ? 'badge-purple' :
-            s.category === 'ST'   ? 'badge-green' : 'badge-gray'
-          }">${s.category || '-'}</span>
-        </td>
-        <td>
-          <span class="badge ${s.active ? 'badge-green' : 'badge-red'}">
-            ${s.active ? '● Active' : '● Inactive'}
-          </span>
-        </td>
-        <td>
-          <div class="td-actions">
-            <button class="btn btn-sm btn-outline" title="View"
-              onclick="STUDENTS.viewStudent('${s.id}')">
-              <i class="fas fa-eye"></i>
-            </button>
-            <button class="btn btn-sm btn-primary" title="Edit"
-              onclick="STUDENTS.openForm('${s.id}')">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn btn-sm btn-danger" title="Delete"
-              onclick="STUDENTS.deleteStudent('${s.id}')">
-              <i class="fas fa-trash"></i>
-            </button>
-            <button class="btn btn-sm btn-outline" title="ID Card"
-              onclick="STUDENTS.printIDCard('${s.id}')">
-              <i class="fas fa-id-card"></i>
-            </button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
+      return `
+        <tr>
+          <td><input type="checkbox" class="row-chk" value="${s.id}"
+            onchange="STUDENTS.toggleSelect('${s.id}',this.checked)"/></td>
+          <td style="color:var(--text-muted);font-size:.8rem">${i + 1}</td>
+          <td>
+            <div class="student-name-cell">
+              <div class="student-avatar">${initials}</div>
+              <div>
+                <div class="s-name">${s.name || '—'}</div>
+                <div class="s-roll">${s.rollNo || '—'}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div style="font-weight:600">${s.year || '—'}</div>
+            <div style="font-size:.75rem;color:var(--text-muted)">
+              ${s.course || ''} ${s.batch ? '· '+s.batch : ''}
+            </div>
+          </td>
+          <td>${s.phone || '—'}</td>
+          <td>${s.category || '—'}</td>
+          <td>
+            <span style="background:rgba(248,150,30,.15);color:#f8961e;
+              padding:.15rem .45rem;border-radius:8px;font-size:.75rem;font-weight:700">
+              ${s.bloodGroup || '—'}
+            </span>
+          </td>
+          <td>
+            <span class="status-badge ${statusClass}">${s.status || 'Active'}</span>
+          </td>
+          <td>
+            <div class="action-group">
+              <button class="btn-xs btn-primary"
+                style="background:var(--primary);color:#fff"
+                onclick="STUDENTS.viewProfile('${s.id}')"
+                title="View Profile">👁️</button>
+              <button class="btn-xs"
+                style="background:rgba(248,150,30,.2);color:#f8961e"
+                onclick="STUDENTS.openEdit('${s.id}')"
+                title="Edit">✏️</button>
+              <button class="btn-xs"
+                style="background:rgba(239,68,68,.2);color:#dc2626"
+                onclick="STUDENTS.deleteStudent('${s.id}')"
+                title="Delete">🗑️</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+
+    const rc = document.getElementById('recordCount');
+    if (rc) rc.textContent = `(${list.length} records)`;
   },
 
-  // ── Open Add/Edit Form ───────────────────────────────────────
-  openForm(id = null) {
-    const modal = document.getElementById('studentModal');
-    const title = document.getElementById('studentModalTitle');
-    const form  = document.getElementById('studentForm');
-    form.reset();
-    document.getElementById('photoPreview').innerHTML =
-      '<i class="fas fa-user" style="font-size:2rem;color:var(--text-muted)"></i>';
-
-    if (id) {
-      const s = DB.findById(DB.KEYS.STUDENTS, id);
-      if (!s) return;
-      title.innerHTML = '<i class="fas fa-edit"></i> Edit Student';
-      this._fillForm(s);
-      form.dataset.editId = id;
-    } else {
-      title.innerHTML = '<i class="fas fa-user-plus"></i> Add New Student';
-      delete form.dataset.editId;
-      // Auto-generate roll number
-      const students = DB.get(DB.KEYS.STUDENTS);
-      const next = students.length + 1;
-      const yr   = new Date().getFullYear().toString().substr(-2);
-      document.getElementById('sRollNo').value = `BAMS${yr}${String(next).padStart(3,'0')}`;
-    }
-    modal.classList.remove('hidden');
+  // ──────────────────── STATS ─────────────────────────────────
+  updateStats() {
+    const all = this.state.all;
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('statTotal',         all.length);
+    set('statActive',        all.filter(s => s.status === 'Active').length);
+    set('statMale',          all.filter(s => s.gender === 'Male').length);
+    set('statFemale',        all.filter(s => s.gender === 'Female').length);
+    set('statNewAdmissions', all.filter(s => s.year === '1st Year').length);
   },
 
-  // ── Fill Form for Edit ───────────────────────────────────────
-  _fillForm(s) {
-    const fields = [
-      'sName','sRollNo','sGender','sDob','sPhone','sEmail',
-      'sYear','sBatch','sCategory','sDept','sBlood','sAddress',
-      'sGuardianName','sGuardianPhone','sAdmissionDate','sAadhaar','sActive'
-    ];
-    const map = {
-      sName:'name', sRollNo:'rollNo', sGender:'gender', sDob:'dob',
-      sPhone:'phone', sEmail:'email', sYear:'year', sBatch:'batch',
-      sCategory:'category', sDept:'department', sBlood:'blood',
-      sAddress:'address', sGuardianName:'guardianName',
-      sGuardianPhone:'guardianPhone', sAdmissionDate:'admissionDate',
-      sAadhaar:'aadhaar', sActive:'active'
-    };
-    fields.forEach(f => {
-      const el = document.getElementById(f);
-      if (!el) return;
-      const key = map[f];
-      if (el.type === 'checkbox') el.checked = s[key];
-      else el.value = s[key] || '';
+  // ──────────────────── FILTERS ───────────────────────────────
+  applyFilters() {
+    const search   = (document.getElementById('searchInput')?.value   || '').toLowerCase();
+    const year     =  document.getElementById('filterYear')?.value     || '';
+    const gender   =  document.getElementById('filterGender')?.value   || '';
+    const category =  document.getElementById('filterCategory')?.value || '';
+    const status   =  document.getElementById('filterStatus')?.value   || '';
+
+    this.state.filtered = this.state.all.filter(s => {
+      const matchSearch = !search ||
+        (s.name   || '').toLowerCase().includes(search) ||
+        (s.rollNo || '').toLowerCase().includes(search) ||
+        (s.phone  || '').includes(search);
+      return matchSearch &&
+        (!year     || s.year     === year)     &&
+        (!gender   || s.gender   === gender)   &&
+        (!category || s.category === category) &&
+        (!status   || s.status   === status);
     });
-    if (s.photo) {
-      document.getElementById('photoPreview').innerHTML =
-        `<img src="${s.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
-    }
+
+    this.renderTable();
   },
 
-  // ── Save Student ─────────────────────────────────────────────
-  saveStudent() {
-    const form = document.getElementById('studentForm');
-    const name = document.getElementById('sName').value.trim();
-    const rollNo = document.getElementById('sRollNo').value.trim();
-    const year   = document.getElementById('sYear').value;
+  clearFilters() {
+    ['searchInput','filterYear','filterGender','filterCategory','filterStatus']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    this.state.filtered = [...this.state.all];
+    this.renderTable();
+  },
 
-    if (!name || !rollNo || !year) {
-      APP.toast('Please fill all required fields!', 'warning');
+  // ──────────────────── ADD/EDIT MODAL ────────────────────────
+  openAdd() {
+    this.state.editingId = null;
+    document.getElementById('studentModalTitle').textContent = '➕ Add New Student';
+    this.resetForm();
+    // Auto-generate roll number
+    const all     = DB.getAll('students') || [];
+    const nextNum = String(all.length + 1).padStart(3, '0');
+    const el = document.getElementById('sRollNo');
+    if (el) el.value = `DAMC${nextNum}`;
+    document.getElementById('studentModal').style.display = 'flex';
+  },
+
+  openEdit(id) {
+    const s = DB.getById('students', id);
+    if (!s) { if(typeof APP!=='undefined') APP.showToast('Student not found!','error'); return; }
+    this.state.editingId = id;
+    document.getElementById('studentModalTitle').textContent = '✏️ Edit Student';
+
+    const fields = {
+      sName:'name', sRollNo:'rollNo', sGender:'gender', sDob:'dob',
+      sBloodGroup:'bloodGroup', sAadhar:'aadhar', sYear:'year', sCourse:'course',
+      sBatch:'batch', sCategory:'category', sReligion:'religion', sStatus:'status',
+      sPhone:'phone', sEmail:'email', sAddress:'address',
+      sFatherName:'fatherName', sFatherPhone:'fatherPhone',
+      sMotherName:'motherName', sMotherPhone:'motherPhone'
+    };
+    Object.entries(fields).forEach(([elId, key]) => {
+      const el = document.getElementById(elId);
+      if (el) el.value = s[key] || '';
+    });
+    document.getElementById('studentModal').style.display = 'flex';
+  },
+
+  closeModal() {
+    document.getElementById('studentModal').style.display = 'none';
+    this.state.editingId = null;
+    this.resetForm();
+  },
+
+  resetForm() {
+    const ids = ['sName','sRollNo','sGender','sDob','sBloodGroup','sAadhar',
+                 'sYear','sCourse','sBatch','sCategory','sReligion','sStatus',
+                 'sPhone','sEmail','sAddress',
+                 'sFatherName','sFatherPhone','sMotherName','sMotherPhone'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (id === 'sCourse') el.value = 'BAMS';
+      else if (id === 'sStatus') el.value = 'Active';
+      else el.value = '';
+    });
+  },
+
+  // ──────────────────── SAVE ──────────────────────────────────
+  saveStudent() {
+    const get = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
+    const name   = get('sName');
+    const rollNo = get('sRollNo');
+    const gender = get('sGender');
+    const year   = get('sYear');
+
+    if (!name || !rollNo || !gender || !year) {
+      if(typeof APP!=='undefined')
+        APP.showToast('Name, Roll No, Gender आणि Year आवश्यक आहेत!','warning');
+      return;
+    }
+
+    // Duplicate roll check
+    const all = DB.getAll('students') || [];
+    const dup = all.find(s => s.rollNo === rollNo && s.id !== this.state.editingId);
+    if (dup) {
+      if(typeof APP!=='undefined')
+        APP.showToast(`⚠️ Roll No "${rollNo}" आधीच exists आहे!`,'error');
       return;
     }
 
     const data = {
-      name,
-      rollNo,
-      gender:         document.getElementById('sGender').value,
-      dob:            document.getElementById('sDob').value,
-      phone:          document.getElementById('sPhone').value.trim(),
-      email:          document.getElementById('sEmail').value.trim(),
+      name, rollNo, gender,
+      dob:          get('sDob'),
+      bloodGroup:   get('sBloodGroup'),
+      aadhar:       get('sAadhar'),
       year,
-      batch:          document.getElementById('sBatch').value,
-      category:       document.getElementById('sCategory').value,
-      department:     document.getElementById('sDept').value,
-      blood:          document.getElementById('sBlood').value,
-      address:        document.getElementById('sAddress').value.trim(),
-      guardianName:   document.getElementById('sGuardianName').value.trim(),
-      guardianPhone:  document.getElementById('sGuardianPhone').value.trim(),
-      admissionDate:  document.getElementById('sAdmissionDate').value,
-      aadhaar:        document.getElementById('sAadhaar').value.trim(),
-      active:         document.getElementById('sActive').checked,
-      photo:          this._currentPhoto || null,
+      course:       get('sCourse') || 'BAMS',
+      batch:        get('sBatch'),
+      category:     get('sCategory'),
+      religion:     get('sReligion'),
+      status:       get('sStatus') || 'Active',
+      phone:        get('sPhone'),
+      email:        get('sEmail'),
+      address:      get('sAddress'),
+      fatherName:   get('sFatherName'),
+      fatherPhone:  get('sFatherPhone'),
+      motherName:   get('sMotherName'),
+      motherPhone:  get('sMotherPhone'),
+      updatedAt:    new Date().toISOString()
     };
 
-    const editId = form.dataset.editId;
-    if (editId) {
-      DB.update(DB.KEYS.STUDENTS, editId, data);
-      APP.toast(`${name} updated successfully!`, 'success');
-      AUTH.logActivity('STUDENT_UPDATE', `Updated student: ${name}`);
+    if (this.state.editingId) {
+      DB.update('students', this.state.editingId, data);
+      if(typeof APP!=='undefined') APP.showToast('✅ Student updated successfully!','success');
     } else {
-      // Check duplicate roll number
-      const exists = DB.get(DB.KEYS.STUDENTS).find(s => s.rollNo === rollNo);
-      if (exists) { APP.toast('Roll number already exists!', 'error'); return; }
-      DB.add(DB.KEYS.STUDENTS, data);
-      APP.toast(`${name} added successfully!`, 'success');
-      AUTH.logActivity('STUDENT_ADD', `Added student: ${name}`);
+      data.createdAt = new Date().toISOString();
+      DB.add('students', { ...data, id: DB.generateId() });
+      if(typeof APP!=='undefined') APP.showToast('✅ Student added successfully!','success');
     }
 
-    this._currentPhoto = null;
-    document.getElementById('studentModal').classList.add('hidden');
-    this.renderList(this._currentFilter || {});
+    this.closeModal();
+    this.loadAll();
+    this.renderTable();
     this.updateStats();
   },
 
-  // ── Delete Student ───────────────────────────────────────────
+  // ──────────────────── DELETE ────────────────────────────────
   deleteStudent(id) {
-    const s = DB.findById(DB.KEYS.STUDENTS, id);
+    const s = DB.getById('students', id);
     if (!s) return;
-    APP.confirm(
-      `Delete student <strong>${s.name}</strong> (${s.rollNo})?<br/>
-       <span style="color:var(--danger);font-size:0.82rem">
-         This will also remove attendance & fee records.
-       </span>`,
-      () => {
-        DB.delete(DB.KEYS.STUDENTS, id);
-        APP.toast(`${s.name} deleted!`, 'success');
-        AUTH.logActivity('STUDENT_DELETE', `Deleted: ${s.name}`);
-        this.renderList(this._currentFilter || {});
-        this.updateStats();
-      }
-    );
+    if (!confirm(`"${s.name}" ला delete करायचे आहे का?`)) return;
+    DB.delete('students', id);
+    if(typeof APP!=='undefined') APP.showToast('🗑️ Student deleted','info');
+    this.loadAll();
+    this.renderTable();
+    this.updateStats();
   },
 
-  // ── View Student Profile ─────────────────────────────────────
-  viewStudent(id) {
-    const s = DB.findById(DB.KEYS.STUDENTS, id);
+  // ──────────────────── VIEW PROFILE ──────────────────────────
+  viewProfile(id) {
+    const s = DB.getById('students', id);
     if (!s) return;
-    const depts = DB.get(DB.KEYS.DEPARTMENTS);
-    const dept  = depts.find(d => d.id === s.department)?.name || s.department;
+    const initials = s.name
+      ? s.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase()
+      : '?';
+    const info = (label, value) => value
+      ? `<tr>
+           <td style="font-weight:600;color:var(--text-muted);padding:.35rem .5rem .35rem 0;
+             font-size:.82rem;white-space:nowrap">${label}</td>
+           <td style="font-size:.85rem;padding:.35rem 0">${value}</td>
+         </tr>` : '';
 
-    // Attendance summary
-    const attRecords = DB.get(DB.KEYS.ATTENDANCE)
-      .filter(a => a.studentId === id);
-    const present = attRecords.filter(a => a.status === 'present').length;
-    const attPct  = attRecords.length
-      ? Math.round((present / attRecords.length) * 100) : 0;
-
-    // Fee summary
-    const feeRecords = DB.get(DB.KEYS.FEES).filter(f => f.studentId === id);
-    const totalPaid  = feeRecords.reduce((sum, f) => sum + (f.amountPaid || 0), 0);
-    const totalDue   = feeRecords.reduce((sum, f) => sum + (f.amountDue  || 0), 0);
-
-    document.getElementById('viewModalBody').innerHTML = `
-      <div class="student-profile">
-        <div class="profile-header">
-          <div class="profile-photo-lg">
-            ${s.photo
-              ? `<img src="${s.photo}" alt="${s.name}"/>`
-              : `<div class="profile-avatar-lg">${APP.Utils.getInitials(s.name)}</div>`
-            }
-          </div>
-          <div class="profile-head-info">
-            <h2>${s.name}</h2>
-            <p class="roll">${s.rollNo}</p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-              <span class="badge badge-blue">${s.year} Year BAMS</span>
-              <span class="badge badge-orange">${s.batch || '-'}</span>
-              <span class="badge ${s.active ? 'badge-green':'badge-red'}">${s.active?'Active':'Inactive'}</span>
-              <span class="badge badge-purple">${s.category}</span>
-            </div>
-          </div>
+    document.getElementById('profileContent').innerHTML = `
+      <div style="text-align:center;margin-bottom:1.5rem">
+        <div style="width:90px;height:90px;border-radius:50%;background:var(--primary);
+          color:#fff;display:flex;align-items:center;justify-content:center;
+          font-size:2.2rem;font-weight:700;margin:0 auto .75rem">
+          ${initials}
         </div>
-
-        <div class="profile-stats-row">
-          <div class="profile-stat">
-            <i class="fas fa-calendar-check" style="color:var(--primary)"></i>
-            <div>
-              <strong>${attPct}%</strong>
-              <span>Attendance</span>
-            </div>
-          </div>
-          <div class="profile-stat">
-            <i class="fas fa-rupee-sign" style="color:var(--warning)"></i>
-            <div>
-              <strong>${APP.Utils.formatCurrency(totalPaid)}</strong>
-              <span>Fee Paid</span>
-            </div>
-          </div>
-          <div class="profile-stat">
-            <i class="fas fa-exclamation-circle" style="color:var(--danger)"></i>
-            <div>
-              <strong>${APP.Utils.formatCurrency(totalDue)}</strong>
-              <span>Fee Due</span>
-            </div>
-          </div>
-          <div class="profile-stat">
-            <i class="fas fa-book" style="color:var(--secondary)"></i>
-            <div>
-              <strong>${DB.get(DB.KEYS.LIB_ISSUES).filter(i=>i.studentId===id&&!i.returnDate).length}</strong>
-              <span>Books Issued</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-grid-2" style="margin-top:20px">
-          ${this._profileRow('Gender',   s.gender)}
-          ${this._profileRow('Date of Birth', APP.Utils.formatDate(s.dob) + (s.dob ? ` (Age: ${APP.Utils.calculateAge(s.dob)})` : ''))}
-          ${this._profileRow('Phone',    s.phone)}
-          ${this._profileRow('Email',    s.email)}
-          ${this._profileRow('Department', dept)}
-          ${this._profileRow('Blood Group', s.blood)}
-          ${this._profileRow('Aadhaar', s.aadhaar ? `••••${s.aadhaar.slice(-4)}` : '-')}
-          ${this._profileRow('Admission Date', APP.Utils.formatDate(s.admissionDate))}
-          ${this._profileRow('Address',  s.address, true)}
-          ${this._profileRow('Guardian', `${s.guardianName || '-'} | ${s.guardianPhone || '-'}`, true)}
-        </div>
-
-        <div class="attendance-bar-section">
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-            <span style="font-size:0.85rem;font-weight:500">Attendance: ${present}/${attRecords.length} classes</span>
-            <span style="font-weight:700;color:${attPct>=75?'var(--success)':attPct>=60?'var(--warning)':'var(--danger)'}">${attPct}%</span>
-          </div>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar-fill ${attPct>=75?'green':attPct>=60?'orange':'red'}"
-              style="width:${attPct}%"></div>
-          </div>
-          ${attPct < 75 ? '<p style="font-size:0.78rem;color:var(--danger);margin-top:6px">⚠️ Below 75% — Attendance shortage!</p>' : ''}
-        </div>
+        <h3 style="margin:0">${s.name || '—'}</h3>
+        <p style="color:var(--text-muted);margin:.25rem 0">${s.rollNo || ''} · ${s.course || ''} · ${s.year || ''}</p>
+        <span style="background:rgba(34,197,94,.15);color:#16a34a;padding:.2rem .6rem;
+          border-radius:12px;font-size:.8rem;font-weight:700">${s.status || 'Active'}</span>
       </div>
-    `;
-    document.getElementById('viewStudentModal').classList.remove('hidden');
-    document.getElementById('viewStudentId').value = id;
-  },
+      <table style="width:100%;border-collapse:collapse" class="profile-info">
+        ${info('📅 Date of Birth', s.dob)}
+        ${info('🩸 Blood Group',   s.bloodGroup)}
+        ${info('🆔 Aadhar',       s.aadhar)}
+        ${info('📞 Phone',        s.phone)}
+        ${info('📧 Email',        s.email)}
+        ${info('🏠 Address',      s.address)}
+        ${info('📚 Batch',        s.batch)}
+        ${info('🏷️ Category',    s.category)}
+        ${info('🛐 Religion',     s.religion)}
+        ${info('👨 Father',       s.fatherName ? s.fatherName + (s.fatherPhone ? ' · '+s.fatherPhone : '') : '')}
+        ${info('👩 Mother',       s.motherName ? s.motherName + (s.motherPhone ? ' · '+s.motherPhone : '') : '')}
+      </table>`;
 
-  _profileRow(label, value, full = false) {
-    return `
-      <div ${full ? 'style="grid-column:1/-1"' : ''} class="profile-info-row">
-        <span class="profile-label">${label}</span>
-        <span class="profile-value">${value || '-'}</span>
-      </div>`;
-  },
-
-  // ── Print ID Card ────────────────────────────────────────────
-  printIDCard(id) {
-    const s = DB.findById(DB.KEYS.STUDENTS, id);
-    if (!s) return;
-    const w = window.open('', '_blank', 'width=400,height=600');
-    w.document.write(`
-      <!DOCTYPE html><html><head>
-      <title>ID Card — ${s.name}</title>
-      <style>
-        body{font-family:Arial,sans-serif;margin:0;padding:20px;background:#f5f5f5}
-        .card{width:320px;background:white;border-radius:12px;overflow:hidden;
-          box-shadow:0 4px 16px rgba(0,0,0,0.1);margin:auto}
-        .card-top{background:linear-gradient(135deg,#1a6b3c,#1a237e);
-          padding:16px;text-align:center;color:white}
-        .card-top h3{font-size:0.75rem;line-height:1.4;margin:0}
-        .card-top p{font-size:0.65rem;opacity:0.8;margin:2px 0 0}
-        .card-body{padding:16px;text-align:center}
-        .photo{width:80px;height:80px;border-radius:50%;
-          border:3px solid #1a6b3c;margin:0 auto 12px;
-          background:#e8f5e9;display:flex;align-items:center;
-          justify-content:center;font-size:1.8rem;color:#1a6b3c;font-weight:bold}
-        .photo img{width:100%;height:100%;object-fit:cover;border-radius:50%}
-        .name{font-size:1.1rem;font-weight:700;color:#0f172a}
-        .roll{font-size:0.75rem;color:#64748b;margin:2px 0 8px}
-        .info-grid{display:grid;grid-template-columns:1fr 1fr;
-          gap:6px;text-align:left;font-size:0.72rem}
-        .info-item label{color:#64748b;display:block}
-        .info-item span{color:#0f172a;font-weight:600}
-        .card-footer{background:#f8fafc;padding:10px 16px;
-          text-align:center;border-top:1px solid #e2e8f0}
-        .card-footer p{font-size:0.65rem;color:#94a3b8;margin:0}
-        .badge-yr{display:inline-block;background:#dbeafe;color:#1d4ed8;
-          padding:2px 10px;border-radius:20px;font-size:0.7rem;font-weight:600;margin-bottom:8px}
-        .barcode{font-size:0.6rem;color:#64748b;margin-top:6px;
-          font-family:monospace;letter-spacing:3px}
-      </style>
-      </head><body onload="window.print()">
-      <div class="card">
-        <div class="card-top">
-          <h3>Dhanwantari Ayurved Medical College & Hospital</h3>
-          <p>Udgir – 413517 | damchudgir.edu.in</p>
-        </div>
-        <div class="card-body">
-          <div class="photo">
-            ${s.photo ? `<img src="${s.photo}"/>` : APP.Utils.getInitials(s.name)}
-          </div>
-          <div class="name">${s.name}</div>
-          <div class="roll">${s.rollNo}</div>
-          <div class="badge-yr">${s.year} Year — BAMS</div>
-          <div class="info-grid">
-            <div class="info-item">
-              <label>Batch</label><span>${s.batch || '-'}</span>
-            </div>
-            <div class="info-item">
-              <label>Category</label><span>${s.category || '-'}</span>
-            </div>
-            <div class="info-item">
-              <label>Blood</label><span>${s.blood || '-'}</span>
-            </div>
-            <div class="info-item">
-              <label>Phone</label><span>${s.phone || '-'}</span>
-            </div>
-          </div>
-          <div class="barcode">|||||||  ${s.rollNo}  |||||||</div>
-        </div>
-        <div class="card-footer">
-          <p>Valid for Academic Year ${s.batch || new Date().getFullYear()}</p>
-          <p>Affiliated: MUHS Nashik | Approved: CCIM & AYUSH</p>
-        </div>
-      </div>
-      </body></html>
-    `);
-    w.document.close();
-  },
-
-  // ── Bulk Actions ─────────────────────────────────────────────
-  selectedIds: new Set(),
-  toggleSelect(id) {
-    this.selectedIds.has(id)
-      ? this.selectedIds.delete(id)
-      : this.selectedIds.add(id);
-    document.getElementById('bulkCount').textContent =
-      this.selectedIds.size > 0
-        ? `${this.selectedIds.size} selected`
-        : '';
-    document.getElementById('bulkActions').style.display =
-      this.selectedIds.size > 0 ? 'flex' : 'none';
-  },
-  selectAll(cb) {
-    this.selectedIds.clear();
-    document.querySelectorAll('.student-check').forEach(c => {
-      c.checked = cb.checked;
-      if (cb.checked) this.selectedIds.add(c.value);
-    });
-    document.getElementById('bulkCount').textContent =
-      cb.checked ? `${this.selectedIds.size} selected` : '';
-    document.getElementById('bulkActions').style.display =
-      cb.checked && this.selectedIds.size > 0 ? 'flex' : 'none';
-  },
-  bulkDelete() {
-    if (!this.selectedIds.size) return;
-    APP.confirm(
-      `Delete <strong>${this.selectedIds.size}</strong> selected students?`,
-      () => {
-        this.selectedIds.forEach(id => DB.delete(DB.KEYS.STUDENTS, id));
-        APP.toast(`${this.selectedIds.size} students deleted!`, 'success');
-        this.selectedIds.clear();
-        this.renderList(this._currentFilter || {});
-        this.updateStats();
-      }
-    );
-  },
-  exportCSV() {
-    const list = DB.get(DB.KEYS.STUDENTS);
-    const rows = list.map(s => ({
-      rollno: s.rollNo, name: s.name, gender: s.gender,
-      dob: s.dob, year: s.year, batch: s.batch,
-      category: s.category, phone: s.phone, email: s.email,
-      address: s.address, guardianname: s.guardianName,
-      guardianphone: s.guardianPhone, admissiondate: s.admissionDate,
-      blood: s.blood, active: s.active ? 'Yes' : 'No'
-    }));
-    BACKUP.exportCSV(rows, 'DAMC_Students_' + new Date().toISOString().split('T')[0],
-      ['rollno','name','gender','dob','year','batch','category',
-       'phone','email','address','guardianname','guardianphone',
-       'admissiondate','blood','active']
-    );
-    APP.toast('Students exported to CSV!', 'success');
-  },
-
-  // ── Update Stats ─────────────────────────────────────────────
-  updateStats() {
-    const list = DB.get(DB.KEYS.STUDENTS);
-    const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
-    el('statTotal',    list.length);
-    el('statMale',     list.filter(s => s.gender === 'Male').length);
-    el('statFemale',   list.filter(s => s.gender === 'Female').length);
-    el('statActive',   list.filter(s => s.active).length);
-    el('stat1st',      list.filter(s => s.year === '1st').length);
-    el('stat2nd',      list.filter(s => s.year === '2nd').length);
-    el('stat3rd',      list.filter(s => s.year === '3rd').length);
-    el('stat4th',      list.filter(s => s.year === '4th').length);
-  },
-
-  // ── Photo Upload ─────────────────────────────────────────────
-  _currentPhoto: null,
-  handlePhotoUpload(input) {
-    const file = input.files[0];
-    if (!file) return;
-    if (file.size > 500 * 1024) {
-      APP.toast('Photo must be less than 500KB!', 'warning'); return;
+    const editBtn = document.getElementById('profileEditBtn');
+    if (editBtn) {
+      editBtn.onclick = () => {
+        document.getElementById('profileModal').style.display = 'none';
+        this.openEdit(id);
+      };
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      this._currentPhoto = e.target.result;
-      document.getElementById('photoPreview').innerHTML =
-        `<img src="${e.target.result}"
-          style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
-    };
-    reader.readAsDataURL(file);
+    document.getElementById('profileModal').style.display = 'flex';
   },
 
-  _currentFilter: {}
+  // ──────────────────── SELECT / BULK ─────────────────────────
+  toggleSelect(id, checked) {
+    checked ? this.state.selected.add(id) : this.state.selected.delete(id);
+  },
+
+  toggleAll(checked) {
+    document.querySelectorAll('.row-chk').forEach(chk => {
+      chk.checked = checked;
+      this.toggleSelect(chk.value, checked);
+    });
+  },
+
+  selectAll() {
+    document.getElementById('selectAllChk').checked = true;
+    this.toggleAll(true);
+  },
+
+  bulkDelete() {
+    const ids = [...this.state.selected];
+    if (!ids.length) {
+      if(typeof APP!=='undefined') APP.showToast('कोणताही student select केलेला नाही!','warning');
+      return;
+    }
+    if (!confirm(`${ids.length} students delete करायचे आहेत का?`)) return;
+    ids.forEach(id => DB.delete('students', id));
+    this.state.selected.clear();
+    if(typeof APP!=='undefined') APP.showToast(`🗑️ ${ids.length} students deleted`,'info');
+    this.loadAll();
+    this.renderTable();
+    this.updateStats();
+  },
+
+  // ──────────────────── EXPORT CSV ────────────────────────────
+  exportCSV() {
+    const all = this.state.filtered;
+    if (!all.length) {
+      if(typeof APP!=='undefined') APP.showToast('Export करण्यासाठी data नाही!','warning');
+      return;
+    }
+    const headers = ['Roll No','Name','Gender','DOB','Year','Course','Batch',
+                     'Category','Phone','Email','Address','Father','Father Ph',
+                     'Mother','Mother Ph','Aadhar','Blood','Religion','Status'];
+    const rows = all.map(s => [
+      s.rollNo, s.name, s.gender, s.dob, s.year, s.course, s.batch,
+      s.category, s.phone, s.email, s.address,
+      s.fatherName, s.fatherPhone, s.motherName, s.motherPhone,
+      s.aadhar, s.bloodGroup, s.religion, s.status
+    ]);
+    const csv  = [headers, ...rows]
+      .map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob(['\uFEFF'+csv], { type:'text/csv;charset=utf-8' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = 'DAMC_Students_Export.csv';
+    a.click();
+    if(typeof APP!=='undefined') APP.showToast('📥 Students CSV exported!','success');
+  },
+
+  // ──────────────────── IMPORT CSV ────────────────────────────
+  importCSV() {
+    const input  = document.createElement('input');
+    input.type   = 'file';
+    input.accept = '.csv';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const text  = await file.text();
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) {
+        if(typeof APP!=='undefined') APP.showToast('CSV file empty or invalid!','error');
+        return;
+      }
+      let added = 0, skipped = 0, errors = [];
+      for (let i = 1; i < lines.length; i++) {
+        const c = lines[i].split(',').map(x => x.replace(/^"|"$/g,'').trim());
+        const [rollNo,name,gender,,dob,year,course,batch,category,
+               phone,email,address,fatherName,fatherPhone,
+               motherName,motherPhone,aadhar,bloodGroup,religion,status] = c;
+        if (!rollNo || !name) { skipped++; errors.push(`Row ${i+1}: Roll No or Name missing`); continue; }
+        const dup = (DB.getAll('students')||[]).find(s => s.rollNo === rollNo);
+        if (dup) { skipped++; errors.push(`Row ${i+1}: Roll No ${rollNo} already exists`); continue; }
+        DB.add('students', {
+          id:DB.generateId(), rollNo,name,gender,dob,year,course,batch,category,
+          phone,email,address,fatherName,fatherPhone,motherName,motherPhone,
+          aadhar,bloodGroup,religion, status:status||'Active',
+          createdAt:new Date().toISOString()
+        });
+        added++;
+      }
+      if(typeof APP!=='undefined')
+        APP.showToast(`✅ ${added} imported, ${skipped} skipped`,'success');
+      if (errors.length) console.warn('Import issues:', errors);
+      this.loadAll(); this.renderTable(); this.updateStats();
+    };
+    input.click();
+  },
+
+  // ──────────────────── DOWNLOAD TEMPLATE ─────────────────────
+  downloadTemplate() {
+    const rows = [
+      ['rollNo','name','gender','dob','year','course','batch','category',
+       'phone','email','address','fatherName','fatherPhone',
+       'motherName','motherPhone','aadhar','bloodGroup','religion','status'],
+      ['DAMC001','Rahul Suresh Patil','Male','2000-05-15','1st Year','BAMS','2024-25',
+       'OBC','9876543210','rahul@email.com','Udgir, Latur',
+       'Suresh Patil','9876543211','Sunita Patil','9876543212',
+       '1234-5678-9012','B+','Hindu','Active'],
+      ['DAMC002','Priya Ramesh Sharma','Female','2001-03-22','2nd Year','BAMS','2023-24',
+       'General','9876543220','priya@email.com','Nanded',
+       'Ramesh Sharma','9876543221','Geeta Sharma','9876543222',
+       '9876-5432-1098','O+','Hindu','Active']
+    ];
+    const csv  = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF'+csv], { type:'text/csv;charset=utf-8' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = 'DAMC_Students_Template.csv';
+    a.click();
+    if(typeof APP!=='undefined') APP.showToast('📄 Students template downloaded!','success');
+  }
+
 };
