@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Faculty — DAMC ERP</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/main.css"/>
+  <style>
+    .filter-bar{display:flex;align-items:center;gap:10px;padding:14px 20px;
+      flex-wrap:wrap;background:var(--bg-table);border-bottom:1px solid var(--border)}
+    .filter-bar select,.filter-bar input{padding:7px 12px;border:1.5px solid var(--border);
+      border-radius:var(--radius-md);background:var(--bg-card);
+      color:var(--text-primary);font-size:0.83rem}
+    .filter-search{position:relative}
+    .filter-search i{position:absolute;left:10px;top:50%;
+      transform:translateY(-50%);color:var(--text-muted);font-size:0.82rem}
+    .filter-search input{padding-left:30px;min-width:220px}
+    .form-section-title{font-size:0.8rem;font-weight:600;color:var(--primary);
+      text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;
+      padding-bottom:6px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;gap:8px}
+    .designed-by-footer{text-align:center;padding:10px;
+      font-size:0.72rem;color:var(--text-muted)}
+    .designed-by-footer a{color:var(--primary);font-weight:600}
+  </style>
+</head>
+<body>
+<div class="page-loader" id="pageLoader">
+  <div class="loader-ring"></div><p>Loading Faculty...</p>
+</div>
+<div class="modal-overlay hidden" id="sidebarOverlay"
+  style="z-index:999;background:rgba(0,0,0,0.5)"></div>
+
+<div class="app-layout">
+  <nav class="sidebar" id="mainSidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fas fa-leaf"></i></div>
+      <div class="brand-text"><h3>DAMC ERP</h3><span>Ayurved College</span></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section-title">Main</div>
+      <a href="dashboard.html" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+      <div class="nav-section-title">Academic</div>
+      <a href="students.html" class="nav-item"><i class="fas fa-user-graduate"></i><span>Students</span></a>
+      <a href="faculty.html" class="nav-item active"><i class="fas fa-chalkboard-teacher"></i><span>Faculty</span></a>
+      <a href="attendance.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Attendance</span></a>
+      <a href="timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+      <a href="exams.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Examinations</span></a>
+      <div class="nav-section-title">Finance</div>
+      <a href="fees.html" class="nav-item"><i class="fas fa-rupee-sign"></i><span>Fee Management</span></a>
+      <div class="nav-section-title">Facilities</div>
+      <a href="library.html" class="nav-item"><i class="fas fa-book"></i><span>Library</span></a>
+      <a href="hostel.html" class="nav-item"><i class="fas fa-building"></i><span>Hostel</span></a>
+      <div class="nav-section-title">Reports</div>
+      <a href="reports.html" class="nav-item"><i class="fas fa-chart-bar"></i><span>Reports</span></a>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar">A</div>
+        <div class="user-info">
+          <p id="sidebarUserName">Admin</p>
+          <span id="sidebarUserRole">admin</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content" id="mainContent">
+    <header class="top-header">
+      <div class="header-left">
+        <button class="sidebar-toggle" id="sidebarToggle"><i class="fas fa-bars"></i></button>
+        <div>
+          <div class="page-title">Faculty Management</div>
+          <div class="breadcrumb"><i class="fas fa-home"></i><span>Home</span> / Faculty</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" onclick="APP.toggleTheme()">
+          <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+        <button class="btn btn-primary" onclick="FACULTY.openForm()">
+          <i class="fas fa-user-plus"></i> Add Faculty
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="AUTH.logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </header>
+
+    <div class="page-content">
+      <!-- Stats -->
+      <div class="stats-grid"
+        style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+        <div class="stat-card blue" style="padding:16px">
+          <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+          <div class="stat-value" id="facStatTotal">0</div>
+          <div class="stat-label">Total Faculty</div>
+        </div>
+        <div class="stat-card green" style="padding:16px">
+          <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+          <div class="stat-value" id="facStatActive">0</div>
+          <div class="stat-label">Active</div>
+        </div>
+        <div class="stat-card purple" style="padding:16px">
+          <div class="stat-icon"><i class="fas fa-male"></i></div>
+          <div class="stat-value" id="facStatMale">0</div>
+          <div class="stat-label">Male</div>
+        </div>
+        <div class="stat-card teal" style="padding:16px">
+          <div class="stat-icon"><i class="fas fa-female"></i></div>
+          <div class="stat-value" id="facStatFemale">0</div>
+          <div class="stat-label">Female</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="filter-bar">
+          <div class="filter-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="facSearch"
+              placeholder="Search name, emp ID..."
+              oninput="applyFacFilter()"/>
+          </div>
+          <select id="facDeptFilter" onchange="applyFacFilter()">
+            <option value="">All Departments</option>
+          </select>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="FACULTY.exportCSV()">
+              <i class="fas fa-file-csv"></i> Export
+            </button>
+            <button class="btn btn-outline btn-sm"
+              onclick="APP.Utils.printSection('facTableWrap')">
+              <i class="fas fa-print"></i> Print
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap" id="facTableWrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th><th>Emp ID</th><th>Designation</th>
+                <th>Department</th><th>Qualification</th>
+                <th>Phone</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="facultyTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card-footer"
+          style="display:flex;justify-content:space-between;align-items:center">
+          <span id="facultyCount"
+            style="font-size:0.82rem;color:var(--text-muted)">Loading...</span>
+          <div class="designed-by-footer">
+            Designed &amp; Developed by
+            <a href="tel:+919518356305">Dr. Jadhav V R (95183 56305)</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT FACULTY MODAL -->
+<div class="modal-overlay hidden" id="facultyModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="facultyModalTitle">
+        <i class="fas fa-user-plus"></i> Add Faculty
+      </h3>
+      <button class="modal-close" onclick="closeModal('facultyModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="facultyForm" onsubmit="event.preventDefault();FACULTY.save()">
+        <div class="form-section-title">
+          <i class="fas fa-user"></i> Personal Information
+        </div>
+        <div class="form-grid-3" style="margin-bottom:16px">
+          <div class="form-group form-full">
+            <label>Full Name *</label>
+            <input type="text" id="fName" placeholder="Dr. Full Name" required/>
+          </div>
+          <div class="form-group">
+            <label>Employee ID</label>
+            <input type="text" id="fEmpId" placeholder="DAMC/FAC/001"/>
+          </div>
+          <div class="form-group">
+            <label>Date of Birth</label>
+            <input type="date" id="fDob"/>
+          </div>
+          <div class="form-group">
+            <label>Blood Group</label>
+            <select id="fBlood">
+              <option value="">Select</option>
+              <option>A+</option><option>A-</option>
+              <option>B+</option><option>B-</option>
+              <option>O+</option><option>O-</option>
+              <option>AB+</option><option>AB-</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" id="fPhone" placeholder="10-digit mobile" maxlength="10"/>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="fEmail" placeholder="faculty@damchudgir.edu.in"/>
+          </div>
+          <div class="form-group form-full">
+            <label>Address</label>
+            <textarea id="fAddress" rows="2" placeholder="Full address"></textarea>
+          </div>
+        </div>
+
+        <div class="form-section-title">
+          <i class="fas fa-graduation-cap"></i> Academic Details
+        </div>
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>Designation *</label>
+            <select id="fDesignation" required>
+              <option value="">Select</option>
+              <option>Professor</option>
+              <option>Associate Professor</option>
+              <option>Assistant Professor</option>
+              <option>Lecturer</option>
+              <option>Tutor</option>
+              <option>Demonstrator</option>
+              <option>HOD</option>
+              <option>Principal</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Department</label>
+            <select id="fDept">
+              <option value="">Select Department</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Joining Date</label>
+            <input type="date" id="fJoinDate"/>
+          </div>
+          <div class="form-group">
+            <label>Qualification</label>
+            <input type="text" id="fQualification"
+              placeholder="e.g. BAMS, MD (Ayu)"/>
+          </div>
+          <div class="form-group">
+            <label>Specialization</label>
+            <input type="text" id="fSpecialization"
+              placeholder="e.g. Kayachikitsa"/>
+          </div>
+          <div class="form-group"
+            style="display:flex;align-items:center;gap:10px;padding-top:24px">
+            <label class="checkbox-label">
+              <input type="checkbox" id="fActive" checked/> Active
+            </label>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="font-size:0.72rem;color:var(--text-muted)">
+        <i class="fas fa-code"></i> Dr. Jadhav V R | 95183 56305
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline" onclick="closeModal('facultyModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="FACULTY.save()">
+          <i class="fas fa-save"></i> Save Faculty
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW FACULTY MODAL -->
+<div class="modal-overlay hidden" id="viewFacultyModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3><i class="fas fa-user-circle"></i> Faculty Profile</h3>
+      <button class="modal-close" onclick="closeModal('viewFacultyModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" id="viewFacultyBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('viewFacultyModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/db.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/backup.js"></script>
+<script src="../assets/js/app.js"></script>
+<script src="../assets/js/faculty.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => document.getElementById('pageLoader').style.display = 'none', 500);
+  APP.init();
+
+  // Populate dept filter
+  const depts   = DB.get(DB.KEYS.DEPARTMENTS);
+  const deptSel = document.getElementById('facDeptFilter');
+  depts.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.id; opt.textContent = d.name;
+    deptSel.appendChild(opt);
+  });
+
+  FACULTY.renderList();
+});
+
+function applyFacFilter() {
+  const filter = {
+    query: document.getElementById('facSearch').value,
+    dept:  document.getElementById('facDeptFilter').value,
+  };
+  FACULTY._currentFilter = filter;
+  FACULTY.renderList(filter);
+}
+
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+</script>
+</body>
+</html>
