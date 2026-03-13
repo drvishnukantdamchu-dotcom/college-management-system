@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hostel — DAMC ERP</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../assets/css/main.css"/>
+  <style>
+    .room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:20px}
+    .room-card{border:2px solid var(--border);border-radius:var(--radius-lg);
+      padding:16px;text-align:center;cursor:pointer;transition:var(--transition);
+      background:var(--bg-card);position:relative}
+    .room-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+    .room-card.available{border-color:var(--success)}
+    .room-card.partial{border-color:var(--warning)}
+    .room-card.full{border-color:var(--danger)}
+    .room-card.maintenance{border-color:var(--text-muted);opacity:0.6}
+    .room-icon{font-size:2rem;margin-bottom:8px}
+    .room-card.available .room-icon{color:var(--success)}
+    .room-card.partial  .room-icon{color:var(--warning)}
+    .room-card.full     .room-icon{color:var(--danger)}
+    .room-number{font-size:1.1rem;font-weight:700;color:var(--text-primary)}
+    .room-type{font-size:0.72rem;color:var(--text-muted);margin-top:2px}
+    .room-occupancy{font-size:0.78rem;font-weight:600;margin-top:6px}
+    .room-badge{position:absolute;top:8px;right:8px}
+    .filter-bar{display:flex;align-items:center;gap:10px;padding:14px 20px;
+      flex-wrap:wrap;background:var(--bg-table);border-bottom:1px solid var(--border)}
+    .filter-bar select,.filter-bar input{padding:7px 12px;
+      border:1.5px solid var(--border);border-radius:var(--radius-md);
+      background:var(--bg-card);color:var(--text-primary);font-size:0.83rem}
+    .designed-by-footer{text-align:center;padding:10px;
+      font-size:0.72rem;color:var(--text-muted)}
+    .designed-by-footer a{color:var(--primary);font-weight:600}
+    .form-section-title{font-size:0.8rem;font-weight:600;color:var(--primary);
+      text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;
+      padding-bottom:6px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;gap:8px}
+  </style>
+</head>
+<body>
+<div class="page-loader" id="pageLoader">
+  <div class="loader-ring"></div><p>Loading Hostel...</p>
+</div>
+<div class="modal-overlay hidden" id="sidebarOverlay"
+  style="z-index:999;background:rgba(0,0,0,0.5)"></div>
+
+<div class="app-layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="mainSidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fas fa-leaf"></i></div>
+      <div class="brand-text"><h3>DAMC ERP</h3><span>Ayurved College</span></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section-title">Main</div>
+      <a href="dashboard.html" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+      <div class="nav-section-title">Academic</div>
+      <a href="students.html" class="nav-item"><i class="fas fa-user-graduate"></i><span>Students</span></a>
+      <a href="faculty.html" class="nav-item"><i class="fas fa-chalkboard-teacher"></i><span>Faculty</span></a>
+      <a href="attendance.html" class="nav-item"><i class="fas fa-calendar-check"></i><span>Attendance</span></a>
+      <a href="timetable.html" class="nav-item"><i class="fas fa-calendar-alt"></i><span>Timetable</span></a>
+      <a href="exams.html" class="nav-item"><i class="fas fa-file-alt"></i><span>Examinations</span></a>
+      <div class="nav-section-title">Finance</div>
+      <a href="fees.html" class="nav-item"><i class="fas fa-rupee-sign"></i><span>Fee Management</span></a>
+      <div class="nav-section-title">Facilities</div>
+      <a href="library.html" class="nav-item"><i class="fas fa-book"></i><span>Library</span></a>
+      <a href="hostel.html" class="nav-item active"><i class="fas fa-building"></i><span>Hostel</span></a>
+      <div class="nav-section-title">Reports</div>
+      <a href="reports.html" class="nav-item"><i class="fas fa-chart-bar"></i><span>Reports</span></a>
+      <div class="nav-section-title">System</div>
+      <a href="#" class="nav-item" onclick="openBackup()"><i class="fas fa-database"></i><span>Backup</span></a>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar">A</div>
+        <div class="user-info">
+          <p id="sidebarUserName">Admin</p>
+          <span id="sidebarUserRole">admin</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main-content" id="mainContent">
+    <header class="top-header">
+      <div class="header-left">
+        <button class="sidebar-toggle" id="sidebarToggle"><i class="fas fa-bars"></i></button>
+        <div>
+          <div class="page-title">Hostel Management</div>
+          <div class="breadcrumb"><i class="fas fa-home"></i><span>Home</span> / Hostel</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="header-btn" onclick="APP.toggleTheme()"><i class="fas fa-moon" id="themeIcon"></i></button>
+        <button class="btn btn-primary" onclick="openAddRoom()">
+          <i class="fas fa-plus"></i> Add Room
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="openAllocate()">
+          <i class="fas fa-user-plus"></i> Allocate
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="AUTH.logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Stats -->
+      <div class="stats-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">
+        <div class="stat-card blue" style="padding:14px">
+          <div class="stat-icon"><i class="fas fa-building"></i></div>
+          <div class="stat-value" id="hStatTotal">0</div>
+          <div class="stat-label">Total Rooms</div>
+        </div>
+        <div class="stat-card green" style="padding:14px">
+          <div class="stat-icon"><i class="fas fa-door-open"></i></div>
+          <div class="stat-value" id="hStatAvail">0</div>
+          <div class="stat-label">Available</div>
+        </div>
+        <div class="stat-card orange" style="padding:14px">
+          <div class="stat-icon"><i class="fas fa-users"></i></div>
+          <div class="stat-value" id="hStatOccupied">0</div>
+          <div class="stat-label">Occupied</div>
+        </div>
+        <div class="stat-card red" style="padding:14px">
+          <div class="stat-icon"><i class="fas fa-door-closed"></i></div>
+          <div class="stat-value" id="hStatFull">0</div>
+          <div class="stat-label">Full</div>
+        </div>
+        <div class="stat-card purple" style="padding:14px">
+          <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+          <div class="stat-value" id="hStatStudents">0</div>
+          <div class="stat-label">Residents</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-header" style="margin-bottom:0">
+        <button class="tab-btn active" onclick="switchHostelTab('rooms')">
+          <i class="fas fa-th-large"></i> Room View
+        </button>
+        <button class="tab-btn" onclick="switchHostelTab('list')">
+          <i class="fas fa-list"></i> Room List
+        </button>
+        <button class="tab-btn" onclick="switchHostelTab('allotment')">
+          <i class="fas fa-users"></i> Allotments
+        </button>
+      </div>
+
+      <!-- Room Grid Tab -->
+      <div class="tab-pane active card" id="hostelTab-rooms"
+        style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+        <div class="filter-bar">
+          <select id="hFloorFilter" onchange="renderRoomGrid()">
+            <option value="">All Floors</option>
+            <option>Ground</option><option>1st Floor</option>
+            <option>2nd Floor</option><option>3rd Floor</option>
+          </select>
+          <select id="hTypeFilter" onchange="renderRoomGrid()">
+            <option value="">All Types</option>
+            <option>Single</option><option>Double</option>
+            <option>Triple</option><option>Dormitory</option>
+          </select>
+          <select id="hGenderFilter" onchange="renderRoomGrid()">
+            <option value="">All</option>
+            <option>Boys</option><option>Girls</option>
+          </select>
+          <div style="margin-left:auto;display:flex;gap:12px;
+            font-size:0.78rem;align-items:center;flex-wrap:wrap">
+            <span><span style="color:var(--success)">●</span> Available</span>
+            <span><span style="color:var(--warning)">●</span> Partial</span>
+            <span><span style="color:var(--danger)">●</span> Full</span>
+            <span><span style="color:var(--text-muted)">●</span> Maintenance</span>
+          </div>
+        </div>
+        <div class="room-grid" id="roomGrid"></div>
+      </div>
+
+      <!-- Room List Tab -->
+      <div class="tab-pane card" id="hostelTab-list"
+        style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Room No</th><th>Floor</th><th>Type</th><th>Gender</th>
+                <th>Capacity</th><th>Occupied</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="roomListBody"></tbody>
+          </table>
+        </div>
+        <div class="card-footer">
+          <div class="designed-by-footer">
+            Designed &amp; Developed by
+            <a href="tel:+919518356305">Dr. Jadhav V R (95183 56305)</a>
+            | DAMC ERP v2.0
+          </div>
+        </div>
+      </div>
+
+      <!-- Allotments Tab -->
+      <div class="tab-pane card" id="hostelTab-allotment"
+        style="border-radius:0 var(--radius-lg) var(--radius-lg)">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-users"></i> Room Allotments
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm"
+              onclick="exportHostelCSV()">
+              <i class="fas fa-file-csv"></i> Export
+            </button>
+            <button class="btn btn-outline btn-sm"
+              onclick="APP.Utils.printSection('allotmentWrap')">
+              <i class="fas fa-print"></i> Print
+            </button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrap" id="allotmentWrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Student</th><th>Roll No</th><th>Year</th>
+                  <th>Room No</th><th>Floor</th><th>Type</th>
+                  <th>Allot Date</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="allotmentBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ADD ROOM MODAL -->
+<div class="modal-overlay hidden" id="addRoomModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-plus"></i> Add New Room</h3>
+      <button class="modal-close" onclick="closeModal('addRoomModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Room Number *</label>
+          <input type="text" id="rNumber" placeholder="e.g. 101"/>
+        </div>
+        <div class="form-group">
+          <label>Floor</label>
+          <select id="rFloor">
+            <option>Ground</option><option>1st Floor</option>
+            <option>2nd Floor</option><option>3rd Floor</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Room Type</label>
+          <select id="rType">
+            <option>Single</option><option>Double</option>
+            <option>Triple</option><option>Dormitory</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Capacity</label>
+          <input type="number" id="rCapacity" min="1" max="20" value="2"/>
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <select id="rGender">
+            <option>Boys</option><option>Girls</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="rStatus">
+            <option>available</option>
+            <option>maintenance</option>
+          </select>
+        </div>
+        <div class="form-group form-full">
+          <label>Amenities</label>
+          <input type="text" id="rAmenities"
+            placeholder="e.g. AC, Attached Bath, WiFi"/>
+        </div>
+        <div class="form-group form-full">
+          <label>Monthly Rent (₹)</label>
+          <input type="number" id="rRent" placeholder="e.g. 3500"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="font-size:0.72rem;color:var(--text-muted)">
+        <i class="fas fa-code"></i> Dr. Jadhav V R | 95183 56305
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline" onclick="closeModal('addRoomModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveRoom()">
+          <i class="fas fa-save"></i> Save Room
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ALLOCATE ROOM MODAL -->
+<div class="modal-overlay hidden" id="allocateModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-user-plus"></i> Allocate Room</h3>
+      <button class="modal-close" onclick="closeModal('allocateModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Select Student *</label>
+        <select id="allocStudentSel">
+          <option value="">Select Student</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Select Room *</label>
+        <select id="allocRoomSel">
+          <option value="">Select Available Room</option>
+        </select>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Allotment Date</label>
+          <input type="date" id="allocDate"/>
+        </div>
+        <div class="form-group">
+          <label>Valid Till</label>
+          <input type="date" id="allocTill"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Remarks</label>
+        <input type="text" id="allocRemarks" placeholder="Optional..."/>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="font-size:0.72rem;color:var(--text-muted)">
+        <i class="fas fa-code"></i> Dr. Jadhav V R | 95183 56305
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline" onclick="closeModal('allocateModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAllocation()">
+          <i class="fas fa-save"></i> Allocate
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ROOM DETAIL MODAL -->
+<div class="modal-overlay hidden" id="roomDetailModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3><i class="fas fa-building"></i> Room Details</h3>
+      <button class="modal-close" onclick="closeModal('roomDetailModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" id="roomDetailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('roomDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- BACKUP MODAL -->
+<div class="modal-overlay hidden" id="backupModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-database"></i> Backup & Restore</h3>
+      <button class="modal-close" onclick="closeModal('backupModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <button class="btn btn-primary"
+          onclick="BACKUP.exportFull();APP.toast('Downloaded!','success')">
+          <i class="fas fa-download"></i> Download Full Backup
+        </button>
+        <input type="file" accept=".json" onchange="handleRestore(this)"
+          style="padding:8px;border:2px dashed var(--border);
+          border-radius:var(--radius-md);width:100%"/>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/db.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/backup.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+// ── Hostel Logic ─────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() =>
+    document.getElementById('pageLoader').style.display = 'none', 500);
+  APP.init();
+  seedHostelRooms();
+  renderRoomGrid();
+  renderRoomList();
+  renderAllotments();
+  updateHostelStats();
+});
+
+// ── Seed Default Rooms ────────────────────────────────────────────
+function seedHostelRooms() {
+  if (DB.get(DB.KEYS.HOSTEL).length > 0) return;
+  const rooms = [];
+  const floors = ['Ground','1st Floor','2nd Floor'];
+  let num = 100;
+  floors.forEach((floor, fi) => {
+    for (let i = 1; i <= 8; i++) {
+      rooms.push({
+        id:        DB.generateId(),
+        roomNo:    String(num + i),
+        floor,
+        type:      i <= 2 ? 'Single' : i <= 5 ? 'Double' : 'Triple',
+        capacity:  i <= 2 ? 1 : i <= 5 ? 2 : 3,
+        gender:    fi < 2 ? 'Boys' : 'Girls',
+        status:    'available',
+        occupied:  0,
+        amenities: 'Fan, Study Table, Cupboard',
+        rent:      i <= 2 ? 4000 : i <= 5 ? 3500 : 3000
+      });
+    }
+    num += 100;
+  });
+  DB.set(DB.KEYS.HOSTEL, rooms);
+}
+
+// ── Render Room Grid ──────────────────────────────────────────────
+function renderRoomGrid() {
+  let rooms = DB.get(DB.KEYS.HOSTEL);
+  const floor  = document.getElementById('hFloorFilter')?.value;
+  const type   = document.getElementById('hTypeFilter')?.value;
+  const gender = document.getElementById('hGenderFilter')?.value;
+  if (floor)  rooms = rooms.filter(r => r.floor  === floor);
+  if (type)   rooms = rooms.filter(r => r.type   === type);
+  if (gender) rooms = rooms.filter(r => r.gender === gender);
+
+  const grid = document.getElementById('roomGrid');
+  if (!grid) return;
+
+  if (!rooms.length) {
+    grid.innerHTML = `<div class="empty-state" style="padding:40px;grid-column:1/-1">
+      <i class="fas fa-building"></i><p>No rooms found</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = rooms.map(r => {
+    const pct = r.capacity > 0
+      ? Math.round((r.occupied / r.capacity) * 100) : 0;
+    const cardClass = r.status === 'maintenance' ? 'maintenance'
+      : r.occupied === 0 ? 'available'
+      : r.occupied >= r.capacity ? 'full' : 'partial';
+    const icon = r.type === 'Single' ? 'fa-user'
+      : r.type === 'Dormitory' ? 'fa-users' : 'fa-user-friends';
+
+    return `
+      <div class="room-card ${cardClass}"
+        onclick="showRoomDetail('${r.id}')">
+        <div class="room-badge">
+          <span class="badge badge-${r.gender === 'Boys' ? 'blue' : 'purple'}">
+            ${r.gender}
+          </span>
+        </div>
+        <div class="room-icon"><i class="fas ${icon}"></i></div>
+        <div class="room-number">Room ${r.roomNo}</div>
+        <div class="room-type">${r.floor} | ${r.type}</div>
+        <div class="room-occupancy"
+          style="color:${cardClass==='available'?'var(--success)'
+            :cardClass==='full'?'var(--danger)':'var(--warning)'}">
+          ${r.occupied}/${r.capacity} occupied
+        </div>
+        <div class="progress-bar-wrap" style="margin-top:8px">
+          <div class="progress-bar-fill
+            ${pct===0?'green':pct>=100?'red':'orange'}"
+            style="width:${pct}%"></div>
+        </div>
+        ${r.status === 'maintenance'
+          ? '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px">🔧 Maintenance</div>'
+          : `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px">₹${r.rent}/month</div>`
+        }
+      </div>
+    `;
+  }).join('');
+
+  updateHostelStats();
+}
+
+// ── Render Room List ──────────────────────────────────────────────
+function renderRoomList() {
+  const rooms = DB.get(DB.KEYS.HOSTEL);
+  const tbody = document.getElementById('roomListBody');
+  if (!tbody) return;
+  tbody.innerHTML = rooms.map(r => {
+    const cardClass = r.status === 'maintenance' ? 'gray'
+      : r.occupied === 0 ? 'green'
+      : r.occupied >= r.capacity ? 'red' : 'orange';
+    return `
+      <tr>
+        <td class="text-primary text-bold">Room ${r.roomNo}</td>
+        <td>${r.floor}</td>
+        <td>${r.type}</td>
+        <td>
+          <span class="badge badge-${r.gender==='Boys'?'blue':'purple'}">
+            ${r.gender}
+          </span>
+        </td>
+        <td style="text-align:center">${r.capacity}</td>
+        <td style="text-align:center">${r.occupied}</td>
+        <td>
+          <span class="badge badge-${cardClass}">
+            ${r.status==='maintenance' ? '🔧 Maintenance'
+              : r.occupied===0 ? '✓ Available'
+              : r.occupied>=r.capacity ? '✗ Full' : '⚡ Partial'}
+          </span>
+        </td>
+        <td>
+          <div class="td-actions">
+            <button class="btn btn-sm btn-outline"
+              onclick="showRoomDetail('${r.id}')">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="btn btn-sm btn-danger"
+              onclick="deleteRoom('${r.id}')">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ── Render Allotments ─────────────────────────────────────────────
+function renderAllotments() {
+  const allotments = DB.get('damc_hostel_allotments') || [];
+  const tbody = document.getElementById('allotmentBody');
+  if (!tbody) return;
+
+  if (!allotments.length) {
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="empty-state" style="padding:20px">
+        <i class="fas fa-users"></i>
+        <p>No allotments yet. Click Allocate to assign rooms.</p>
+      </div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = allotments.map(a => `
+    <tr>
+      <td><strong>${a.studentName}</strong></td>
+      <td class="text-primary">${a.rollNo}</td>
+      <td><span class="badge badge-blue">${a.year} Year</span></td>
+      <td class="text-bold">Room ${a.roomNo}</td>
+      <td>${a.floor}</td>
+      <td>${a.roomType}</td>
+      <td>${APP.Utils.formatDate(a.allotDate)}</td>
+      <td>
+        <button class="btn btn-sm btn-danger"
+          onclick="vacateRoom('${a.id}')">
+          <i class="fas fa-user-minus"></i> Vacate
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ── Show Room Detail ──────────────────────────────────────────────
+function showRoomDetail(roomId) {
+  const room = DB.findById(DB.KEYS.HOSTEL, roomId);
+  if (!room) return;
+  const allotments = (DB.get('damc_hostel_allotments') || [])
+    .filter(a => a.roomId === roomId && a.active);
+
+  document.getElementById('roomDetailBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;
+      gap:12px;margin-bottom:20px;padding:16px;
+      background:var(--bg-table);border-radius:var(--radius-md)">
+      <div>
+        <div style="font-size:0.72rem;color:var(--text-muted)">Room Number</div>
+        <div style="font-size:1.4rem;font-weight:800;color:var(--primary)">
+          Room ${room.roomNo}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.72rem;color:var(--text-muted)">Status</div>
+        <span class="badge badge-${room.occupied>=room.capacity
+          ?'red':room.occupied===0?'green':'orange'}" style="font-size:0.85rem">
+          ${room.occupied}/${room.capacity} Occupied
+        </span>
+      </div>
+      ${[
+        ['Floor',     room.floor],
+        ['Type',      room.type],
+        ['Gender',    room.gender],
+        ['Amenities', room.amenities],
+        ['Rent',      APP.Utils.formatCurrency(room.rent) + '/month'],
+        ['Status',    room.status],
+      ].map(([l,v]) => `
+        <div>
+          <div style="font-size:0.72rem;color:var(--text-muted)">${l}</div>
+          <div style="font-weight:600;font-size:0.88rem">${v||'-'}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <h4 style="margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <i class="fas fa-users" style="color:var(--primary)"></i>
+      Current Residents (${allotments.length})
+    </h4>
+    ${allotments.length
+      ? `<div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student</th><th>Roll No</th>
+                <th>Year</th><th>Since</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${allotments.map(a => `
+                <tr>
+                  <td><strong>${a.studentName}</strong></td>
+                  <td class="text-primary">${a.rollNo}</td>
+                  <td>${a.year} Year</td>
+                  <td>${APP.Utils.formatDate(a.allotDate)}</td>
+                  <td>
+                    <button class="btn btn-sm btn-danger"
+                      onclick="vacateRoom('${a.id}');
+                        closeModal('roomDetailModal')">
+                      <i class="fas fa-user-minus"></i> Vacate
+                    </button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`
+      : `<div class="empty-state" style="padding:20px">
+           <i class="fas fa-user-slash"></i>
+           <p>No residents in this room</p>
+         </div>`
+    }
+  `;
+  document.getElementById('roomDetailModal').classList.remove('hidden');
+}
+
+// ── Add Room ──────────────────────────────────────────────────────
+function openAddRoom() {
+  document.getElementById('addRoomModal').classList.remove('hidden');
+}
+
+function saveRoom() {
+  const num = document.getElementById('rNumber').value.trim();
+  if (!num) { APP.toast('Room number required!', 'warning'); return; }
+
+  DB.add(DB.KEYS.HOSTEL, {
+    roomNo:    num,
+    floor:     document.getElementById('rFloor').value,
+    type:      document.getElementById('rType').value,
+    capacity:  parseInt(document.getElementById('rCapacity').value) || 2,
+    gender:    document.getElementById('rGender').value,
+    status:    document.getElementById('rStatus').value,
+    amenities: document.getElementById('rAmenities').value,
+    rent:      parseFloat(document.getElementById('rRent').value) || 0,
+    occupied:  0
+  });
+
+  closeModal('addRoomModal');
+  document.getElementById('addRoomModal').querySelector('form')?.reset();
+  renderRoomGrid();
+  renderRoomList();
+  updateHostelStats();
+  APP.toast('Room added!', 'success');
+}
+
+function deleteRoom(id) {
+  APP.confirm('Delete this room?', () => {
+    DB.delete(DB.KEYS.HOSTEL, id);
+    renderRoomGrid();
+    renderRoomList();
+    updateHostelStats();
+    APP.toast('Room deleted!', 'success');
+  });
+}
+
+// ── Allocate Room ─────────────────────────────────────────────────
+function openAllocate() {
+  const studentSel = document.getElementById('allocStudentSel');
+  const roomSel    = document.getElementById('allocRoomSel');
+
+  studentSel.innerHTML = '<option value="">Select Student</option>';
+  DB.get(DB.KEYS.STUDENTS).filter(s => s.active).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = `${s.name} (${s.rollNo})`;
+    studentSel.appendChild(opt);
+  });
+
+  roomSel.innerHTML = '<option value="">Select Available Room</option>';
+  DB.get(DB.KEYS.HOSTEL)
+    .filter(r => r.status !== 'maintenance' && r.occupied < r.capacity)
+    .forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent =
+        `Room ${r.roomNo} — ${r.floor} | ${r.type} | ${r.gender}` +
+        ` (${r.capacity - r.occupied} free)`;
+      roomSel.appendChild(opt);
+    });
+
+  const today = new Date().toISOString().split('T')[0];
+  const till  = new Date();
+  till.setFullYear(till.getFullYear() + 1);
+  document.getElementById('allocDate').value = today;
+  document.getElementById('allocTill').value =
+    till.toISOString().split('T')[0];
+
+  document.getElementById('allocateModal').classList.remove('hidden');
+}
+
+function saveAllocation() {
+  const studentId = document.getElementById('allocStudentSel').value;
+  const roomId    = document.getElementById('allocRoomSel').value;
+  if (!studentId || !roomId) {
+    APP.toast('Please select student and room!', 'warning');
+    return;
+  }
+
+  const student = DB.findById(DB.KEYS.STUDENTS, studentId);
+  const room    = DB.findById(DB.KEYS.HOSTEL, roomId);
+  if (!student || !room) return;
+
+  // Check duplicate
+  const existing = (DB.get('damc_hostel_allotments') || [])
+    .find(a => a.studentId === studentId && a.active);
+  if (existing) {
+    APP.toast('Student already has a room!', 'warning');
+    return;
+  }
+
+  const allotments = DB.get('damc_hostel_allotments') || [];
+  allotments.push({
+    id:          DB.generateId(),
+    studentId,
+    studentName: student.name,
+    rollNo:      student.rollNo,
+    year:        student.year,
+    roomId,
+    roomNo:      room.roomNo,
+    floor:       room.floor,
+    roomType:    room.type,
+    allotDate:   document.getElementById('allocDate').value,
+    validTill:   document.getElementById('allocTill').value,
+    remarks:     document.getElementById('allocRemarks').value,
+    active:      true,
+    allottedBy:  AUTH.currentUser()?.name || 'Admin'
+  });
+  DB.set('damc_hostel_allotments', allotments);
+
+  // Update room occupancy
+  DB.update(DB.KEYS.HOSTEL, roomId, {
+    occupied: (room.occupied || 0) + 1
+  });
+
+  closeModal('allocateModal');
+  renderRoomGrid();
+  renderRoomList();
+  renderAllotments();
+  updateHostelStats();
+  APP.toast(
+    `Room ${room.roomNo} allocated to ${student.name}!`, 'success'
+  );
+  AUTH.logActivity('ROOM_ALLOT',
+    `Room ${room.roomNo} → ${student.name}`);
+}
+
+function vacateRoom(allotId) {
+  APP.confirm('Vacate this room?', () => {
+    const allotments = DB.get('damc_hostel_allotments') || [];
+    const idx = allotments.findIndex(a => a.id === allotId);
+    if (idx === -1) return;
+
+    const a = allotments[idx];
+    allotments[idx].active = false;
+    allotments[idx].vacateDate = new Date().toISOString().split('T')[0];
+    DB.set('damc_hostel_allotments', allotments);
+
+    // Reduce occupancy
+    const room = DB.findById(DB.KEYS.HOSTEL, a.roomId);
+    if (room) {
+      DB.update(DB.KEYS.HOSTEL, a.roomId, {
+        occupied: Math.max(0, (room.occupied || 1) - 1)
+      });
+    }
+
+    renderRoomGrid();
+    renderRoomList();
+    renderAllotments();
+    updateHostelStats();
+    APP.toast('Room vacated!', 'success');
+  });
+}
+
+// ── Update Stats ──────────────────────────────────────────────────
+function updateHostelStats() {
+  const rooms      = DB.get(DB.KEYS.HOSTEL);
+  const allotments = (DB.get('damc_hostel_allotments') || [])
+    .filter(a => a.active);
+
+  const el = (id, v) => {
+    const e = document.getElementById(id);
+    if (e) e.textContent = v;
+  };
+  el('hStatTotal',    rooms.length);
+  el('hStatAvail',    rooms.filter(r => r.occupied === 0 && r.status !== 'maintenance').length);
+  el('hStatOccupied', rooms.filter(r => r.occupied > 0 && r.occupied < r.capacity).length);
+  el('hStatFull',     rooms.filter(r => r.occupied >= r.capacity).length);
+  el('hStatStudents', allotments.length);
+}
+
+function exportHostelCSV() {
+  const data = (DB.get('damc_hostel_allotments') || []).filter(a => a.active);
+  BACKUP.exportCSV(
+    data,
+    `DAMC_Hostel_${new Date().toISOString().split('T')[0]}`,
+    ['studentName','rollNo','year','roomNo','floor','roomType','allotDate','validTill']
+  );
+  APP.toast('Hostel data exported!', 'success');
+}
+
+function switchHostelTab(tab) {
+  document.querySelectorAll('[id^="hostelTab-"]')
+    .forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn')
+    .forEach(b => b.classList.remove('active'));
+  document.getElementById(`hostelTab-${tab}`)?.classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'list')      renderRoomList();
+  if (tab === 'allotment') renderAllotments();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+function openBackup() {
+  document.getElementById('backupModal').classList.remove('hidden');
+}
+async function handleRestore(input) {
+  const file = input.files[0];
+  if (!file) return;
+  APP.confirm('Replace all data?', async () => {
+    try {
+      const r = await BACKUP.importBackup(file);
+      APP.toast(r.message, r.success ? 'success' : 'error');
+      if (r.success) setTimeout(() => location.reload(), 1200);
+    } catch(e) { APP.toast(e.message, 'error'); }
+  });
+}
+</script>
+</body>
+</html>
